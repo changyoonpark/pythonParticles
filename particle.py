@@ -20,9 +20,6 @@ class Particle:
 		self.vel = Vec2(0,0)
 		self.acc = Vec2(0,0)
 		self.fext = Vec2(0,0)
-		# self.viscosity = np.float64(viscosity)
-		# self.mass = np.float64(mass)
-		# self.radius = np.float64(radius)
 		self.viscosity = viscosity
 		self.mass = mass
 		self.radius = radius
@@ -33,13 +30,13 @@ class Particle:
 		self.fext = Vec2(0,0)
 
 class ParticleSystem:
-	def __init__ (self):
+	def __init__ (self,collisionModel,interactionLength = 0.5):
 		self.q = Queue()		
 		self.particleSet = []
 		self.placeParticles(0.2)
 		self.dimLim = Vec2(20,20)
-		self.interactionLength = 0.5
-		self.hashGridSize = self.interactionLength * 1.2
+		self.interactionLength = interactionLength
+		self.hashGridSize = self.interactionLength * 1.1
 		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
 			            int(self.dimLim.y // self.hashGridSize) + 1)
 		self.dt = 0.02
@@ -47,7 +44,8 @@ class ParticleSystem:
 		self.scat = None
 		self.animation = None
 		self.hashData = []
-		# self.
+		self.particleCollisionModel = collisionModel
+
 		for i in range(0,self.gridLim[0]):
 			self.hashData.append([])
 			for j in range(0,self.gridLim[1]):
@@ -158,8 +156,6 @@ class ParticleSystem:
 		ax.set_xlim(0, self.dimLim.x)
 		ax.set_ylim(0, self.dimLim.y)
 		pointData = self.getPoints()
-		# xdat = np.array([np.float64(p[0]) for p in pointData])
-		# ydat = np.array([np.float64(p[1]) for p in pointData])
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
 		self.scat = ax.scatter(xdat,ydat,
@@ -203,24 +199,14 @@ class ParticleSystem:
 					if gridX + i >= self.gridLim[0] or gridY + j >= self.gridLim[1]:
 						continue
 					self.collideCells((gridX,gridY),(gridX+i,gridY+j))
-		self.forAllParticlePairs(self.stupidSpring)
+		self.forAllParticlePairs(self.particleCollisionModel)
 
 	def particleInteractions(self):
 		self.particleInteractionsWorker(self.gridListAll)	
 
-	def stupidSpring(self,pairData):
-		dist = pairData.dist
-		relvel = pairData.relvel
-		reldir = pairData.reldir
-		particlei = pairData.particlei
-		particlei.fext = particlei.fext - 300 * pow(dist - self.interactionLength,1) * reldir
-		particlei.fext = particlei.fext - 0.5 * relvel
-
 	def forAllParticlePairs(self,doThis):
-		# print("Iterating thru pairsdata")
 		for pair in self.pairsData:
-			# print(self.pairsData[pair])
-			doThis(self.pairsData[pair])
+			doThis(self.pairsData[pair],self.interactionLength)
 
 	def collideParticles(self,particle1,particle2):
 		if particle1 is particle2 : 
@@ -242,8 +228,6 @@ class ParticleSystem:
 		for particle1 in self.hashData[cell1[0]][cell1[1]]:
 			for particle2 in self.hashData[cell2[0]][cell2[1]]:
 				self.collideParticles(particle1, particle2)
-				# if self.collideParticles(particle1,particle2):
-					# particle1.neighborList.append(particle2)
 
 	def wipeHash(self):
 		for i in range(0,self.gridLim[0]):
@@ -251,14 +235,8 @@ class ParticleSystem:
 				if len(self.hashData[i][j]) is not 0:
 					self.hashData[i][j] = []
 
-	# def _hashWorker(self,particle):
-	# 	particle.hash = (int(particle.pos.x // self.hashGridSize),
-	# 				     int(particle.pos.y // self.hashGridSize))
-	# 	self.hashData[particle.hash[0]][particle.hash[1]].append(particle)
-
 	def hash(self):
 		self.wipeHash()
-		# self.pool.map(self._hashWorker,self.particleSet)
 		for particle in self.particleSet:
 			particle.hash = (int(particle.pos.x // self.hashGridSize),
 						     int(particle.pos.y // self.hashGridSize))
@@ -277,10 +255,3 @@ class ParticleSystem:
 				self.particleSet.append(newParticle)
 				num += 1
 		print("Placed {} Particles.".format(num))
-
-psys = ParticleSystem()
-psys.run()
-# def foo():
-	# for i in range(0,20):
-		# psys.update(i)
-# cProfile.run('foo()')
