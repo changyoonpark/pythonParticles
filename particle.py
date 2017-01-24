@@ -28,7 +28,7 @@ class Particle:
 		self.radius = radius
 		self.hash = (-1,-1)
 		self.neighborList = []
-		# self.foo = 0
+		self.foo = 0
 
 	def initForce(self):
 		self.fext = Vec2(0,0)
