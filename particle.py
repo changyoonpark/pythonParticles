@@ -2,83 +2,11 @@ import cProfile
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from math import sqrt
 from matplotlib.animation import FuncAnimation
 from multiprocessing import Process, Queue
 from timer import *
-
-class ParticlePair:
-	def __init__ (self,pi,pj,relpos,relvel,dist,reldir):
-		self.particlei = pi
-		self.particlej = pj
-		self.relpos = relpos
-		self.relvel = relvel
-		self.dist = dist
-		self.reldir = reldir
-
-	def __str__ (self):
-		st = ""
-		st += "Particle i : {}, Particle j : {}\n".format(self.particlei.pID,self.particlej.pID)
-		st += "Rel Vel : {}\n".format(self.relvel)		
-		st += "Rel Pos : {}\n".format(self.relpos)
-		st += "Rel Dir : {}\n".format(self.reldir)		
-		return st
-
-class Vec2:
-
-	def __init__ (self,x,y):
-		self.x = x
-		self.y = y
-
-	def length(self):
-		return sqrt(self.x*self.x+self.y*self.y)
-
-	def dir(self):
-		return self / self.length()
-		# return Vec2(self.x / self.length(), self.y / self.length())
-
-	def __mul__ (self,other):
-		return Vec2(self.x * other, self.y * other)
-
-	def __rmul__ (self,other):
-		return Vec2(self.x * other, self.y * other)
-
-	def __truediv__(self,other):
-		return Vec2(self.x / other, self.y / other)
-
-	def __add__ (self,other):
-		return Vec2(self.x + other.x, self.y + other.y)
-
-	def __sub__ (self,other):
-		return Vec2(self.x - other.x, self.y - other.y)
-		
-	def __neg__ (self):
-		return Vec2(-self.x,-self.y)
-
-	def __str__ (self):
-		return "Vector : ({},{})".format(self.x, self.y)
-
-class Kernel:
-	def __init__ (self,smoothingLength):
-		self.h = smoothingLength
-
-	def W(pairDat,h):
-		q = pairDat.dist / h
-		if q >= 0 and q <=1 :
-			return 0.34104630662549*((2-q)**3-4*(1-q))/(h**2)
-		elif q > 1 and q <= 2 :
-			return 0.34104630662549*(2-q)**3/(h**2)
-		else :
-			return 0
-
-	def gradW(pairDat,h):
-		q = pairDat.dist / h
-		if q >= 0 and q <= 1 :
-			return 0.34104630662549*(4-3*(q-2)**2)/(pairDat.dist*h**2)*pairDat.reldir
-		elif q >= 1 and q <= 2 :
-			return 0.34104630662549*( -3*(2-q)**2)/(pairDat.dist*h**2)*pairDat.reldir
-		else :
-			return Vec2(0,0)
+from kernels import *
+from helpers import *
 
 class Particle:
 	def __init__ (self,
@@ -120,7 +48,7 @@ class ParticleSystem:
 		self.scat = None
 		self.animation = None
 		self.hashData = []
-		self.
+		# self.
 		for i in range(0,self.gridLim[0]):
 			self.hashData.append([])
 			for j in range(0,self.gridLim[1]):
