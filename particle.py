@@ -13,8 +13,7 @@ class Particle:
 				  pID,
 				  pos,vel,acc,
 		          viscosity,
-		          mass,
-		          radius):
+		          mass):
 		self.pID = pID
 		self.pos = pos
 		self.vel = Vec2(0,0)
@@ -22,7 +21,6 @@ class Particle:
 		self.fext = Vec2(0,0)
 		self.viscosity = viscosity
 		self.mass = mass
-		self.radius = radius
 		self.hash = (-1,-1)
 		self.neighborList = []
 
@@ -30,22 +28,55 @@ class Particle:
 		self.fext = Vec2(0,0)
 
 class ParticleSystem:
-	def __init__ (self,collisionModel,interactionLength = 0.5):
+	def __init__ (self,collisionModel,
+		               dt = 0.01,
+		               domain = (20,20),
+		               particleInitData = None		           
+		               ):
+
 		self.q = Queue()		
 		self.particleSet = []
-		self.placeParticles(0.2)
-		self.dimLim = Vec2(20,20)
-		self.interactionLength = interactionLength
-		self.hashGridSize = self.interactionLength * 1.1
-		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
-			            int(self.dimLim.y // self.hashGridSize) + 1)
-		self.dt = 0.02
-		self.walls = [(0.5,0.5),(19.5,19.5)]
+		self.dimLim = Vec2(domain[0],domain[1])
+
+		self.dt = dt
+		self.walls = [(0.5,0.5),(domain[0]-0.5,domain[0]-0.5)]
 		self.scat = None
 		self.animation = None
 		self.hashData = []
 		self.particleCollisionModel = collisionModel
 
+
+		if particleInitData is None : 
+			self.interactionLength = 0.5
+			num = 0
+			for i in range(1,11):
+				for j in range(1,11):
+					newParticle = Particle(num,
+										   Vec2(0.5+self.interactionLength*i*(1.1+0.02*np.random.rand()),
+										   	    0.5+self.interactionLength*j*(1.1+0.02*np.random.rand())),
+										   Vec2(0,0),Vec2(0,0),
+										   0.1,0.1)
+					self.particleSet.append(newParticle)
+					num += 1
+			print("Placed {} Particles.".format(num))
+
+		else : 
+			num = 0
+			self.interactionLength = particleInitData.interactionLength			
+			posDat = particleInitData.posDat
+			velDat = particleInitData.velDat
+			viscosity = particleInitData.viscosity
+			particleMass = particleInitData.particleMass
+			for idx in range(0,len(posDat)) : 
+				newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),viscosity,particleMass)
+				self.particleSet.append(newParticle)
+				num += 1
+
+
+		self.hashGridSize = self.interactionLength * 1.1
+		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
+			            int(self.dimLim.y // self.hashGridSize) + 1)
+		gridNum = self.gridLim[0] * self.gridLim[1] // 4
 		for i in range(0,self.gridLim[0]):
 			self.hashData.append([])
 			for j in range(0,self.gridLim[1]):
@@ -53,7 +84,7 @@ class ParticleSystem:
 		self.gridList = [[],[],[],[]]
 		self.gridListAll = []
 		self.pairsData = dict()
-		gridNum = self.gridLim[0] * self.gridLim[1] // 4
+
 		foo = 0
 		for gridX in range(0,self.gridLim[0]):
 			for gridY in range(0,self.gridLim[1]):
@@ -243,15 +274,5 @@ class ParticleSystem:
 			self.hashData[particle.hash[0]][particle.hash[1]].append(particle)
 
 
-	def placeParticles(self,radius):
-		num = 0
-		for i in range(0,18):
-			for j in range(0,18):
-				newParticle = Particle(num,
-									   Vec2(0.5+0.5*i*(1.1+0.02*np.random.rand()),
-									   	    0.5+0.5*j*(1.1+0.02*np.random.rand())),
-									   Vec2(0,0),Vec2(0,0),
-									   0.1,0.1,0.1)
-				self.particleSet.append(newParticle)
-				num += 1
-		print("Placed {} Particles.".format(num))
+	# def placeParticles(self,radius):
+
