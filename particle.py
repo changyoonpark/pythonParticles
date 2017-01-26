@@ -12,15 +12,13 @@ class Particle:
 	def __init__ (self,
 				  pID,
 				  pos,vel,acc,
-		          viscosity,
-		          mass):
+		          particleVariables):
 		self.pID = pID
 		self.pos = pos
 		self.vel = Vec2(0,0)
 		self.acc = Vec2(0,0)
 		self.fext = Vec2(0,0)
-		self.viscosity = viscosity
-		self.mass = mass
+		self.particleVariables = particleVariables
 		self.hash = (-1,-1)
 		self.neighborList = []
 
@@ -29,6 +27,8 @@ class Particle:
 
 class ParticleSystem:
 	def __init__ (self,collisionModel,
+					   beforeCollisionFuncs,
+					   afterCollisionFuncs,
 		               dt = 0.01,
 		               domain = (20,20),
 		               particleInitData = None		           
@@ -37,14 +37,15 @@ class ParticleSystem:
 		self.q = Queue()		
 		self.particleSet = []
 		self.dimLim = Vec2(domain[0],domain[1])
-
+		self.systemConstants = None
 		self.dt = dt
 		self.walls = [(0.5,0.5),(domain[0]-0.5,domain[0]-0.5)]
 		self.scat = None
 		self.animation = None
 		self.hashData = []
 		self.particleCollisionModel = collisionModel
-
+		self.beforeCollisionFuncs = beforeCollisionFuncs
+		self.afterCollisionFuncs = afterCollisionFuncs
 
 		if particleInitData is None : 
 			self.interactionLength = 0.5
@@ -62,13 +63,14 @@ class ParticleSystem:
 
 		else : 
 			num = 0
-			self.interactionLength = particleInitData.interactionLength			
+			self.interactionLength = particleInitData.interactionLength
+			self.systemConstants = particleInitData.systemConstants			
 			posDat = particleInitData.posDat
 			velDat = particleInitData.velDat
-			viscosity = particleInitData.viscosity
-			particleMass = particleInitData.particleMass
 			for idx in range(0,len(posDat)) : 
-				newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),viscosity,particleMass)
+				newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
+					particleInitData.particleVariables
+					)
 				self.particleSet.append(newParticle)
 				num += 1
 
@@ -110,12 +112,24 @@ class ParticleSystem:
 	def resetPairList(self):
 		self.pairsData.clear()
 
+	def forAllParticlesBeforeCollision(self):
+		for function in self.beforeCollisionFuncs:
+			for particle in self.particleSet:
+				function(particle)
+
+	def forAllParticlesAfterCollision(self):
+		for function in self.afterCollisionFuncs:
+			for particle in self.particleSet:
+				function(particle)
+
 	def calculateForces(self,withPos,withVel):
 		self.setPosAndVel(withPos,withVel)
 		self.resetForceBuffer()
+		self.forAllParticlesBeforeCollision()
 		self.resetPairList()
 		self.particleInteractions()
 		self.boundaryInteractions()
+		self.forAllParticlesAfterCollision()
 		self.forceSum()
 		return [particle.acc for particle in self.particleSet]
 
@@ -200,7 +214,7 @@ class ParticleSystem:
 
 	def forceSum(self):
 		for particle in self.particleSet:
-			particle.acc = particle.fext / particle.mass
+			particle.acc = particle.fext / particle.particleVariables["mass"]
 			particle.acc = particle.acc - Vec2(0,10.0)
 
 	def boundaryInteractions(self):

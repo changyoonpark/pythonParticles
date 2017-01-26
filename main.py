@@ -2,12 +2,26 @@ from particle import *
 import particleInit
 import collisionModel
 
-stupidBlock = particleInit.ParticleInitData(viscosity = 0.1,
-	 				  					    particleMass = 0.1,
-	 				  		                interactionLength = 0.5)
 
-psys = ParticleSystem(collisionModel = collisionModel.stupidSpring,
-	 				  particleInitData = stupidBlock,
-	 				  dt = 0.015)
+interactionLength = 0.5
+blockOfFluid = particleInit.ParticleInitData(
+	systemConstants   =  {"viscosity"     : 0.1,
+	                      "restdensity"   : 1000,
+	                      "kappa"         : 10},
+	particleVariables =  {"density"       : 1000,
+	 					  "pressure"      : 0,
+	 					  "temperature"   : 0,
+	 					  "mass"          : 0.1},
+    interactionLength = interactionLength)
+
+beforeCollisionFunctions = []
+afterCollisionFunctions = [] 
+
+psys = ParticleSystem(
+	collisionModel = collisionModel.stupidSpring,
+    beforeCollisionFuncs = beforeCollisionFunctions,
+    afterCollisionFuncs = afterCollisionFunctions,
+    particleInitData = blockOfFluid,
+    dt = 0.015)
 
 psys.run()

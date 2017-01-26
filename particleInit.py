@@ -2,9 +2,14 @@ from helpers import *
 import numpy as np
 
 class ParticleInitData:
-	def __init__ (self,viscosity,particleMass,interactionLength):
-		self.viscosity = viscosity
-		self.particleMass =  particleMass
+	def __init__ (self,
+		          systemConstants,
+		          particleVariables,
+		          interactionLength):
+	
+		self.systemConstants = systemConstants
+		self.particleVariables = particleVariables
+
 		self.interactionLength = interactionLength
 		self.posDat = []
 		self.velDat = []
