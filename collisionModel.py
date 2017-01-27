@@ -1,9 +1,11 @@
 from helpers import *
 
-def stupidSpring(pairData,interactionLength):
-	dist = pairData.dist
-	relvel = pairData.relvel
-	reldir = pairData.reldir
-	particlei = pairData.particlei
-	particlei.fext = particlei.fext - 300 * pow(dist - interactionLength,1) * reldir
-	particlei.fext = particlei.fext - 0.5 * relvel
+def stupidSpring(systemConstants,pairsData,particle):
+	
+	for neighborParticle in particle.neighborList:
+		pairData = pairsData.get((particle,neighborParticle))
+		if pairData is not None :
+			il = systemConstants["interactionlen"]
+			particle.fext = particle.fext - 300 * \
+				pow(pairData.dist - il,1) * pairData.reldir
+			particle.fext = particle.fext - 0.5 * pairData.relvel

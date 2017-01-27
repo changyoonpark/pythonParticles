@@ -3,32 +3,31 @@ import particleInit
 import collisionModel
 
 
-interactionLength = 0.5
-
 
 ######### Initializes the "particles" #########
 blockOfFluid = particleInit.ParticleInitData(
 
-	systemConstants   =  {"viscosity"     : 0.1,
-	                      "restdensity"   : 1000,
-	                      "kappa"         : 10},
+	systemConstants   =  {"viscosity"       : 0.1,
+	                      "rho0"     : 1000,
+	                      "kappa"           : 10,
+	                      "gamma"           : 3,
+	                      "interactionlen"  : 0.5,
+	                      "dt"              : 0.015},
 
-	particleVariables =  {"density"       : 1000,
-	 					  "pressure"      : 0,
-	 					  "temperature"   : 0,
-	 					  "mass"          : 0.1},
+	particleVariables =  {"rho"         : 1000,
+	 					  "pressure"        : 0,
+	 					  "temperature"     : 0,
+	 					  "mass"            : 0.1,
+	 					  "f_adv"           : Vec2(0,0),
+	 					  "v_adv"           : Vec2(0,0)}
 
-    interactionLength = interactionLength)
+)	 				
 
-######### Iterate through the particles and do these #########
-beforeCollisionFunctions = []
-afterCollisionFunctions  = [] 
+
+operationFuncs = [collisionModel.stupidSpring]
 
 psys = ParticleSystem(
-	collisionModel       = collisionModel.stupidSpring,
-    beforeCollisionFuncs = beforeCollisionFunctions,
-    afterCollisionFuncs  = afterCollisionFunctions,
-    particleInitData     = blockOfFluid,
-    dt                   = 0.015)
+	operationFuncs       = operationFuncs,
+    particleInitData     = blockOfFluid)
 
 psys.run()

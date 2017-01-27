@@ -26,35 +26,30 @@ class Particle:
 		self.fext = Vec2(0,0)
 
 class ParticleSystem:
-	def __init__ (self,collisionModel,
-					   beforeCollisionFuncs,
-					   afterCollisionFuncs,
-		               dt = 0.01,
+	def __init__ (self,operationFuncs,		               
 		               domain = (20,20),
 		               particleInitData = None		           
 		               ):
 
-		self.q = Queue()		
+		self.systemConstants = dict()
+
 		self.particleSet = []
 		self.dimLim = Vec2(domain[0],domain[1])
-		self.systemConstants = None
-		self.dt = dt
 		self.walls = [(0.5,0.5),(domain[0]-0.5,domain[0]-0.5)]
 		self.scat = None
 		self.animation = None
 		self.hashData = []
-		self.particleCollisionModel = collisionModel
-		self.beforeCollisionFuncs = beforeCollisionFuncs
-		self.afterCollisionFuncs = afterCollisionFuncs
+		self.operationFuncs = operationFuncs
 
 		if particleInitData is None : 
-			self.interactionLength = 0.5
+			self.systemConstants["interactionlen"] = 0.5
+			il = self.systemConstants["interactionlen"]
 			num = 0
 			for i in range(1,11):
 				for j in range(1,11):
 					newParticle = Particle(num,
-										   Vec2(0.5+self.interactionLength*i*(1.1+0.02*np.random.rand()),
-										   	    0.5+self.interactionLength*j*(1.1+0.02*np.random.rand())),
+										   Vec2(0.5+il*i*(1.1+0.02*np.random.rand()),
+										   	    0.5+il*j*(1.1+0.02*np.random.rand())),
 										   Vec2(0,0),Vec2(0,0),
 										   0.1,0.1)
 					self.particleSet.append(newParticle)
@@ -63,7 +58,6 @@ class ParticleSystem:
 
 		else : 
 			num = 0
-			self.interactionLength = particleInitData.interactionLength
 			self.systemConstants = particleInitData.systemConstants			
 			posDat = particleInitData.posDat
 			velDat = particleInitData.velDat
@@ -75,7 +69,7 @@ class ParticleSystem:
 				num += 1
 
 
-		self.hashGridSize = self.interactionLength * 1.1
+		self.hashGridSize = self.systemConstants["interactionlen"] * 1.1
 		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
 			            int(self.dimLim.y // self.hashGridSize) + 1)
 		gridNum = self.gridLim[0] * self.gridLim[1] // 4
@@ -115,21 +109,23 @@ class ParticleSystem:
 	def forAllParticlesBeforeCollision(self):
 		for function in self.beforeCollisionFuncs:
 			for particle in self.particleSet:
-				function(particle)
+				function(self.systemConstants,particle)
 
 	def forAllParticlesAfterCollision(self):
 		for function in self.afterCollisionFuncs:
 			for particle in self.particleSet:
-				function(particle)
+				function(self.systemConstants,particle)
 
 	def calculateForces(self,withPos,withVel):
 		self.setPosAndVel(withPos,withVel)
 		self.resetForceBuffer()
-		self.forAllParticlesBeforeCollision()
 		self.resetPairList()
-		self.particleInteractions()
+		self.constructContacts()
+		for operation in self.operationFuncs:
+			for particle in self.particleSet:
+				operation(self.systemConstants,self.pairsData,particle)
+
 		self.boundaryInteractions()
-		self.forAllParticlesAfterCollision()
 		self.forceSum()
 		return [particle.acc for particle in self.particleSet]
 
@@ -158,42 +154,42 @@ class ParticleSystem:
 		k1 = (velBeforeUpdate,
 			  self.calculateForces(posBeforeUpdate,velBeforeUpdate))
 
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.dt))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.dt))
+		intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.systemConstants["dt"]))
+		intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.systemConstants["dt"]))
 		k2 = (intermediateVel,
 			  self.calculateForces(intermediatePos,intermediateVel))
 
 		l = len(k1)
 		for i in range(0,l):
 			self.particleSet[i].pos = posBeforeUpdate[i] + \
-						self.dt*(k1[0][i])
+						self.systemConstants["dt"]*(k1[0][i])
 			self.particleSet[i].vel = velBeforeUpdate[i] + \
-						self.dt*(k1[1][i])
+						self.systemConstants["dt"]*(k1[1][i])
 
 	def rk4(self,posBeforeUpdate,velBeforeUpdate):
 		k1 = (velBeforeUpdate,
 			  self.calculateForces(posBeforeUpdate,velBeforeUpdate))
 
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.dt))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.dt))
+		intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.systemConstants["dt"]))
+		intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.systemConstants["dt"]))
 		k2 = (intermediateVel,
 			  self.calculateForces(intermediatePos,intermediateVel))
 
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k2[0],0.5*self.dt))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k2[1],0.5*self.dt))
+		intermediatePos = self.add(posBeforeUpdate,self.mult(k2[0],0.5*self.systemConstants["dt"]))
+		intermediateVel = self.add(velBeforeUpdate,self.mult(k2[1],0.5*self.systemConstants["dt"]))
 		k3 = (intermediateVel,
 			  self.calculateForces(intermediatePos,intermediateVel))
 
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k3[0],self.dt))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k3[1],self.dt))
+		intermediatePos = self.add(posBeforeUpdate,self.mult(k3[0],self.systemConstants["dt"]))
+		intermediateVel = self.add(velBeforeUpdate,self.mult(k3[1],self.systemConstants["dt"]))
 		k4 = (intermediateVel,
 			  self.calculateForces(intermediatePos,intermediateVel))
 		l = len(k1)
 		for i in range(0,l):
 			self.particleSet[i].pos = posBeforeUpdate[i] + \
-						(1.0/6.0)*self.dt*(k1[0][i]+2.0*k2[0][i]+2.0*k3[0][i]+k4[0][i])
+						(1.0/6.0)*self.systemConstants["dt"]*(k1[0][i]+2.0*k2[0][i]+2.0*k3[0][i]+k4[0][i])
 			self.particleSet[i].vel = velBeforeUpdate[i] + \
-						(1.0/6.0)*self.dt*(k1[1][i]+2.0*k2[1][i]+2.0*k3[1][i]+k4[1][i])
+						(1.0/6.0)*self.systemConstants["dt"]*(k1[1][i]+2.0*k2[1][i]+2.0*k3[1][i]+k4[1][i])
 
 	def run(self):
 		fig = plt.figure(figsize=(7, 7))
@@ -204,7 +200,7 @@ class ParticleSystem:
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
 		self.scat = ax.scatter(xdat,ydat,
-						s=619*self.interactionLength**2,color = 'black',edgecolor= (1,1,1,0.5))
+						s=619*self.systemConstants["interactionlen"]**2,color = 'black',edgecolor= (1,1,1,0.5))
 		animation = FuncAnimation(fig, self.update,interval=1,repeat=False)
 		plt.show()
 
@@ -234,8 +230,9 @@ class ParticleSystem:
 				particle.fext.x = particle.fext.x - 300*pow(particle.pos.x - self.walls[1][0],2)
 				particle.fext.x = particle.fext.x - 0.2 * particle.vel.x
 
-	def particleInteractionsWorker(self,gridPairs):
-		for gridPair in gridPairs:
+	def constructContacts(self):
+		self.wipeNeighborList()
+		for gridPair in self.gridListAll:
 			(gridX,gridY) = gridPair
 			for i in [-1,0,1]:
 				for j in [-1,0,1]:
@@ -244,14 +241,6 @@ class ParticleSystem:
 					if gridX + i >= self.gridLim[0] or gridY + j >= self.gridLim[1]:
 						continue
 					self.collideCells((gridX,gridY),(gridX+i,gridY+j))
-		self.forAllParticlePairs(self.particleCollisionModel)
-
-	def particleInteractions(self):
-		self.particleInteractionsWorker(self.gridListAll)	
-
-	def forAllParticlePairs(self,doThis):
-		for pair in self.pairsData:
-			doThis(self.pairsData[pair],self.interactionLength)
 
 	def collideParticles(self,particle1,particle2):
 		if particle1 is particle2 : 
@@ -260,8 +249,10 @@ class ParticleSystem:
 		relvel = (particle1.vel - particle2.vel)
 		dist = relpos.length()		
 		reldir = relpos.dir()
-		if dist <= self.interactionLength:
+		if dist <= self.systemConstants["interactionlen"]:
 			if self.pairsData.get((particle1,particle2)) is None :
+				particle1.neighborList.append(particle2)
+				particle2.neighborList.append(particle1)
 				self.pairsData[(particle1,particle2)]  \
 				    = ParticlePair(particle1,particle2,relpos,relvel,dist,reldir)
 				self.pairsData[(particle2,particle1)]  \
@@ -279,6 +270,10 @@ class ParticleSystem:
 			for j in range(0,self.gridLim[1]):
 				if len(self.hashData[i][j]) is not 0:
 					self.hashData[i][j] = []
+
+	def wipeNeighborList(self):
+		for particle in self.particleSet:
+			particle.neighborList = []
 
 	def hash(self):
 		self.wipeHash()
