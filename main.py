@@ -12,14 +12,17 @@ blockOfFluid = particleInit.ParticleInitData(
 	                      "kappa"           : 10,
 	                      "gamma"           : 3,
 	                      "interactionlen"  : 0.5,
+	                      "gravity"         : 10,
 	                      "dt"              : 0.015},
 
-	particleVariables =  {"rho"         : 1000,
+	particleVariables =  {"rho"             : 1000,
 	 					  "pressure"        : 0,
 	 					  "temperature"     : 0,
 	 					  "mass"            : 0.1,
 	 					  "f_adv"           : Vec2(0,0),
-	 					  "v_adv"           : Vec2(0,0)}
+	 					  "v_adv"           : Vec2(0,0),
+	 					  "rho_adv"         : 0,
+	 					  "d_ii"            : Vec2(0,0)}
 
 )	 				
 

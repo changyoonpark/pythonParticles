@@ -211,7 +211,6 @@ class ParticleSystem:
 	def forceSum(self):
 		for particle in self.particleSet:
 			particle.acc = particle.fext / particle.particleVariables["mass"]
-			particle.acc = particle.acc - Vec2(0,10.0)
 
 	def boundaryInteractions(self):
 

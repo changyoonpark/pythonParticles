@@ -26,6 +26,9 @@ class Vec2:
 	def length(self):
 		return sqrt(self.x*self.x+self.y*self.y)
 
+	def dot(self,other):
+		return self.x * other.x + self.y * other.y
+
 	def dir(self):
 		return self / self.length()
 		# return Vec2(self.x / self.length(), self.y / self.length())
