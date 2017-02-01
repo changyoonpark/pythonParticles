@@ -8,7 +8,8 @@ import collisionModel
 blockOfFluid = particleInit.ParticleInitData(
 
 	systemConstants   =  {"viscosity"       : 0.1,
-	                      "rho0"     : 1000,
+	                      "rho0"            : 1000,
+	                      "rho_ave"  	    : 0,
 	                      "kappa"           : 10,
 	                      "gamma"           : 3,
 	                      "interactionlen"  : 0.5,

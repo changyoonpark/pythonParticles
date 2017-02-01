@@ -121,9 +121,9 @@ class ParticleSystem:
 		self.resetForceBuffer()
 		self.resetPairList()
 		self.constructContacts()
+
 		for operation in self.operationFuncs:
-			for particle in self.particleSet:
-				operation(self.systemConstants,self.pairsData,particle)
+			operation(self.systemConstants,self.pairsData,particle)
 
 		self.boundaryInteractions()
 		self.forceSum()
@@ -242,14 +242,21 @@ class ParticleSystem:
 					self.collideCells((gridX,gridY),(gridX+i,gridY+j))
 
 	def collideParticles(self,particle1,particle2):
-		if particle1 is particle2 : 
-			return False
+		if particle1 is particle2 :
+			# Enable if you want to not include the particle as a neighbor for itself
+			# return False
+			particle1.neighborList.append(particle1)
+			self.pairsData[(particle1,particle1)]  \
+			    = ParticlePair(particle1,particle1,Vec2(0,0),Vec2(0,0),0,Vec2(0,0))
+			return True
+
 		relpos = (particle1.pos - particle2.pos)
 		relvel = (particle1.vel - particle2.vel)
 		dist = relpos.length()		
 		reldir = relpos.dir()
 		if dist <= self.systemConstants["interactionlen"]:
 			if self.pairsData.get((particle1,particle2)) is None :
+
 				particle1.neighborList.append(particle2)
 				particle2.neighborList.append(particle1)
 				self.pairsData[(particle1,particle2)]  \
