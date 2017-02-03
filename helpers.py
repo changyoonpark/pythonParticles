@@ -17,6 +17,9 @@ class ParticlePair:
 		st += "Rel Dir : {}\n".format(self.reldir)		
 		return st
 
+	def swapIdx(self):
+		return (self.particlej,self.particlei)
+
 class Vec2:
 
 	def __init__ (self,x,y):

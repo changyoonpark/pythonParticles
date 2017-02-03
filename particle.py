@@ -26,20 +26,19 @@ class Particle:
 		self.fext = Vec2(0,0)
 
 class ParticleSystem:
-	def __init__ (self,operationFuncs,		               
+	def __init__ (self,interactionAlgo,		               
 		               domain = (20,20),
 		               particleInitData = None		           
 		               ):
 
 		self.systemConstants = dict()
-
 		self.particleSet = []
 		self.dimLim = Vec2(domain[0],domain[1])
 		self.walls = [(0.5,0.5),(domain[0]-0.5,domain[0]-0.5)]
 		self.scat = None
 		self.animation = None
 		self.hashData = []
-		self.operationFuncs = operationFuncs
+		self.interactionOperations = interactionAlgo.getAlgoProcedure()
 
 		if particleInitData is None : 
 			self.systemConstants["interactionlen"] = 0.5
@@ -106,16 +105,6 @@ class ParticleSystem:
 	def resetPairList(self):
 		self.pairsData.clear()
 
-	def forAllParticlesBeforeCollision(self):
-		for function in self.beforeCollisionFuncs:
-			for particle in self.particleSet:
-				function(self.systemConstants,particle)
-
-	def forAllParticlesAfterCollision(self):
-		for function in self.afterCollisionFuncs:
-			for particle in self.particleSet:
-				function(self.systemConstants,particle)
-
 	def calculateForces(self,withPos,withVel):
 		self.setPosAndVel(withPos,withVel)
 		self.resetForceBuffer()
@@ -139,9 +128,10 @@ class ParticleSystem:
 	def update(self,t):
 		tic()
 		self.hash()
-		posBeforeUpdate = [particle.pos for particle in self.particleSet]
-		velBeforeUpdate = [particle.vel for particle in self.particleSet]
-		self.rk4(posBeforeUpdate,velBeforeUpdate)
+		self.solveTimeStep()
+		# posBeforeUpdate = [particle.pos for particle in self.particleSet]
+		# velBeforeUpdate = [particle.vel for particle in self.particleSet]
+		# self.rk4(posBeforeUpdate,velBeforeUpdate)
 		# self.rk2(posBeforeUpdate,velBeforeUpdate)
 		pdat = self.getPoints()
 		print("time : {}".format(t))
@@ -149,6 +139,11 @@ class ParticleSystem:
 		if t % 3 == 0:
 			self.scat.set_offsets(pdat)
 		# if t == 100:
+
+	def solveTimeStep(self):
+		for operation in interactionOperations:
+			operation(systemConstants,pairsData,particleSet)
+
 
 	def rk2(self,posBeforeUpdate,velBeforeUpdate):
 		k1 = (velBeforeUpdate,
