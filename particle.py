@@ -34,7 +34,6 @@ class ParticleSystem:
 		self.systemConstants = dict()
 		self.particleSet = []
 		self.dimLim = Vec2(domain[0],domain[1])
-		self.walls = [(0.5,0.5),(domain[0]-0.5,domain[0]-0.5)]
 		self.scat = None
 		self.animation = None
 		self.hashData = []
@@ -68,7 +67,7 @@ class ParticleSystem:
 				num += 1
 
 
-		self.hashGridSize = self.systemConstants["interactionlen"] * 1.1
+		self.hashGridSize = self.systemConstants["interactionlen"] * 1.5
 		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
 			            int(self.dimLim.y // self.hashGridSize) + 1)
 		gridNum = self.gridLim[0] * self.gridLim[1] // 4
@@ -128,6 +127,8 @@ class ParticleSystem:
 	def update(self,t):
 		tic()
 		self.hash()
+		self.resetPairList()
+		self.constructContacts()		
 		self.solveTimeStep()
 		# posBeforeUpdate = [particle.pos for particle in self.particleSet]
 		# velBeforeUpdate = [particle.vel for particle in self.particleSet]
@@ -141,8 +142,8 @@ class ParticleSystem:
 		# if t == 100:
 
 	def solveTimeStep(self):
-		for operation in interactionOperations:
-			operation(systemConstants,pairsData,particleSet)
+		for operation in self.interactionOperations:
+			operation(self.systemConstants,self.pairsData,self.particleSet)
 
 
 	def rk2(self,posBeforeUpdate,velBeforeUpdate):
@@ -206,23 +207,6 @@ class ParticleSystem:
 	def forceSum(self):
 		for particle in self.particleSet:
 			particle.acc = particle.fext / particle.particleVariables["mass"]
-
-	def boundaryInteractions(self):
-
-		for particle in self.particleSet:
-
-			if particle.pos.y < self.walls[0][1] : 
-				particle.fext.y = particle.fext.y + 300*pow(self.walls[0][1] - particle.pos.y,2)
-				particle.fext.y = particle.fext.y - 0.2 * particle.vel.y 
-			elif particle.pos.y > self.walls[1][1] : 
-				particle.fext.y = particle.fext.y - 300*pow(particle.pos.y - self.walls[1][1],2)
-				particle.fext.y = particle.fext.y - 0.2 * particle.vel.y
-			if particle.pos.x < self.walls[0][0] :
-				particle.fext.x = particle.fext.x + 300*pow(self.walls[0][0] - particle.pos.x,2)
-				particle.fext.x = particle.fext.x - 0.2 * particle.vel.x
-			elif particle.pos.x > self.walls[1][0] : 
-				particle.fext.x = particle.fext.x - 300*pow(particle.pos.x - self.walls[1][0],2)
-				particle.fext.x = particle.fext.x - 0.2 * particle.vel.x
 
 	def constructContacts(self):
 		self.wipeNeighborList()

@@ -1,6 +1,6 @@
 from particle import *
 from kernels import W_4, gW_4, lW_v
-from interactionAlgorithm import IISPH_Algorithm
+from IISPH import IISPH_Algorithm
 import particleInit
 
 
@@ -12,7 +12,10 @@ blockOfFluid = particleInit.ParticleInitData(
 	                      "rho0"            : 1000,
 	                      "interactionlen"  : 1.128,
 	                      "gravity"         : 10,
-	                      "dt"              : 0.015},
+	                      "dt"              : 0.015,
+	                      "domain"          : (20,20),
+	                      "walls"           : (0.5,0.5),
+	                     },
 
 	particleVariables =  {"rho"             : 1000,
 	 					  "pressure"        : 0,
@@ -32,7 +35,7 @@ IISPH = IISPH_Algorithm(W_4,gW_4,lW_v,omega = 0.5)
 
 
 psys = ParticleSystem(
-	operationFuncs       = operationFuncs,
+	interactionAlgo      = IISPH,
     particleInitData     = blockOfFluid)
-
+print("Starting Simulation.")
 psys.run()

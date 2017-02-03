@@ -1,14 +1,14 @@
-from interactionAlgorithm import *
-
+# from interactionAlgorithm import *
+from helpers import *
 
 # Inherits from InteractionAlgorithm
-class IISPH_Algorithm(InteractionAlogorithm):
+class IISPH_Algorithm :
 
 # particleSystem is the list of all the particles.
 # systemConstants stores the constants used in the simulation.
 # pairsData stores the pre-computed data regarding the neighbors.
 	def __init__(self,W,gW,lW,omega = 0.5):
-		super().__init__(W,gW,lW)		
+		# super().__init__(W,gW,lW)		
 		# These operations are done in order, for the particlesystem.
 		self.omega = omega
 		self._proceduresInOrder =  [
@@ -48,7 +48,7 @@ class IISPH_Algorithm(InteractionAlogorithm):
 
 			particle.particleVariables["d_ii"] = particle.particleVariables["d_ii"] * systemConstants["dt"]**2
 
-	def calculate_sum_pj_dij(self,systemConstants,pairsData):
+	def calculate_sum_pj_dij(self,particle,systemConstants,pairsData):
 		particle.particleVariables["sum_pj_dij"] = Vec2(0,0)
 		for neighbor in particle.neighborList:
 			pairData = pairsData[(particle,neighbor)]
@@ -72,20 +72,23 @@ class IISPH_Algorithm(InteractionAlogorithm):
 					 neighbor.relvel
  		#   consider gravity.
 			particle.particleVariables["f_adv"] -= \
-				particle.particleVariables["mass"] * systemConstants["gravity"]
+				particle.particleVariables["mass"] * systemConstants["gravity"] * Vec2(0,-1)
 
 	def calculateWall(self,systemConstants,pairsData,particleSet):
+		print(systemConstants)
+		walls = systemConstants["walls"]
+		domain = systemConstants["domain"]
 		for particle in particleSet:			
-			if particle.pos.y   < particleSet.walls[0][1] : 
+			if particle.pos.y   < walls[1] : 
 				particle.particleVariables["f_adv"].y = particle.fext.y + 300 * particle.particleVariables["mass"] * pow(self.walls[0][1] - particle.pos.y,2)
 				particle.particleVariables["f_adv"].y = particle.fext.y - particle.particleVariables["mass"] * 0.2 * particle.vel.y 
-			elif particle.pos.y > particleSet.walls[1][1] : 
+			elif particle.pos.y > domain[1] - walls[1] : 
 				particle.particleVariables["f_adv"].y = particle.fext.y - 300 * particle.particleVariables["mass"] * pow(particle.pos.y - self.walls[1][1],2)
 				particle.particleVariables["f_adv"].y = particle.fext.y - particle.particleVariables["mass"] * 0.2 * particle.vel.y
-			if particle.pos.x   < particleSet.walls[0][0] :
+			if particle.pos.x   < walls[0] :
 				particle.particleVariables["f_adv"].x = particle.fext.x + 300 * particle.particleVariables["mass"] * pow(self.walls[0][0] - particle.pos.x,2)
 				particle.particleVariables["f_adv"].x = particle.fext.x - particle.particleVariables["mass"] * 0.2 * particle.vel.x
-			elif particle.pos.x > particleSet.walls[1][0] : 
+			elif particle.pos.x > domain[1] - walls[0] : 
 				particle.particleVariables["f_adv"].x = particle.fext.x - 300 * particle.particleVariables["mass"] * pow(particle.pos.x - self.walls[1][0],2)
 				particle.particleVariables["f_adv"].x = particle.fext.x - particle.particleVariables["mass"] * 0.2 * particle.vel.x
 
@@ -95,7 +98,7 @@ class IISPH_Algorithm(InteractionAlogorithm):
 		for particle in particleSet:
 			particle.particleVariables["v_adv"] = \
 				particle.vel + \
-				particle.particleVariables["dt"] * particle.particleVariables["f_adv"] / particle.particleVariables["mass"]	
+				systemConstants["dt"] * particle.particleVariables["f_adv"] / particle.particleVariables["mass"]	
 
 	def calculateAdvectionDensity(self,systemConstants,pairsData,particleSet):
 		for particle in particleSet:
@@ -137,7 +140,7 @@ class IISPH_Algorithm(InteractionAlogorithm):
 					 .dot(self.gW(pairData,systemConstants["interactionlen"]))
 
 		return (1-self.omega) * particle.particleVariables["pressure"] + \
-		   		omega * (1/particle.particleVariables["a_ii"]) * \
+		   		self.omega * (1/particle.particleVariables["a_ii"]) * \
 		   		(systemConstants["rho0"] - particle.particleVariables["rho_adv"] - junk)
 
 
