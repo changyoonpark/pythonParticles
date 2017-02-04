@@ -163,9 +163,13 @@ class IISPH_Algorithm :
 
 			for particle in particleSet:
 				self.calculate_sum_pj_dij(particle,systemConstants,pairsData)
+				print("sumpjdij")
+				print(particle.particleVariables["sum_pj_dij"])
 
 			for particle in particleSet:
 				particle.particleVariables["pressure_est"] = self.estimatePressure(particle,systemConstants,pairsData,particleSet)
+				# print(particle.particleVariables["pressure_est"])					
+
 
 			for particle in particleSet:
 				particle.particleVariables["pressure"] = particle.particleVariables["pressure_est"]

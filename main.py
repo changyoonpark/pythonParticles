@@ -19,7 +19,7 @@ blockOfFluid = particleInit.ParticleInitData(
 	                     },
 
 	particleVariables =  {"rho"             : 1000,
-	 					  "pressure"        : 0,
+	 					  "pressure"        : 100,
 	 					  "pressure_est"    : 0,
 	 					  "temperature"     : 0,
 	 					  "mass"            : 0.25,

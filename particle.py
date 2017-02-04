@@ -199,7 +199,7 @@ class ParticleSystem:
 		ydat = np.array([p[1] for p in pointData])
 		self.scat = ax.scatter(xdat,ydat,
 						s=619*self.systemConstants["interactionlen"]**2,color = 'black',edgecolor= (1,1,1,0.5))
-		animation = FuncAnimation(fig, self.update,interval=1,repeat=False)
+		animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
 		plt.show()
 
 	def resetForceBuffer(self):
