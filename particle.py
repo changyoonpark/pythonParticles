@@ -26,28 +26,27 @@ class Particle:
 		self.fext = Vec2(0,0)
 
 class ParticleSystem:
-	def __init__ (self,interactionAlgo,		               
-		               domain = (20,20),
-		               particleInitData = None		           
+	def __init__ (self,interactionAlgo,		       
+		               particleInitData
 		               ):
 
 		self.systemConstants = dict()
 		self.particleSet = []
-		self.dimLim = Vec2(domain[0],domain[1])
+		self.dimLim = Vec2(None,None,tup = particleInitData.systemConstants["domain"])
 		self.scat = None
 		self.animation = None
 		self.hashData = []
 		self.interactionOperations = interactionAlgo.getAlgoProcedure()
 
 		if particleInitData is None : 
-			self.systemConstants["interactionlen"] = 0.5
+			self.systemConstants["interactionlen"] = 0.5			
 			il = self.systemConstants["interactionlen"]
 			num = 0
 			for i in range(1,11):
 				for j in range(1,11):
 					newParticle = Particle(num,
-										   Vec2(0.5+il*i*(1.1+0.02*np.random.rand()),
-										   	    0.5+il*j*(1.1+0.02*np.random.rand())),
+										   Vec2(self.systemConstants["interactionlen"]+il*i,
+										   	    self.systemConstants["interactionlen"]+il*j),
 										   Vec2(0,0),Vec2(0,0),
 										   0.1,0.1)
 					self.particleSet.append(newParticle)
@@ -55,6 +54,7 @@ class ParticleSystem:
 			print("Placed {} Particles.".format(num))
 
 		else : 
+			print("Reading initial particle data")
 			num = 0
 			self.systemConstants = particleInitData.systemConstants			
 			posDat = particleInitData.posDat
@@ -127,8 +127,10 @@ class ParticleSystem:
 	def update(self,t):
 		tic()
 		self.hash()
+
 		self.resetPairList()
-		self.constructContacts()		
+		self.constructContacts()	
+
 		self.solveTimeStep()
 		# posBeforeUpdate = [particle.pos for particle in self.particleSet]
 		# velBeforeUpdate = [particle.vel for particle in self.particleSet]
@@ -220,6 +222,10 @@ class ParticleSystem:
 						continue
 					self.collideCells((gridX,gridY),(gridX+i,gridY+j))
 
+		for particle in self.particleSet:
+			print("neighbor list for particle {}".format(particle.pID))
+			print(particle.neighborList)
+
 	def collideParticles(self,particle1,particle2):
 		if particle1 is particle2 :
 			# Enable if you want to not include the particle as a neighbor for itself
@@ -265,6 +271,8 @@ class ParticleSystem:
 		for particle in self.particleSet:
 			particle.hash = (int(particle.pos.x // self.hashGridSize),
 						     int(particle.pos.y // self.hashGridSize))
+			print(particle.pos)
+			print("----------")
 			self.hashData[particle.hash[0]][particle.hash[1]].append(particle)
 
 

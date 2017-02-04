@@ -11,6 +11,7 @@ blockOfFluid = particleInit.ParticleInitData(
 	systemConstants   =  {"viscosity"       : 0.005,
 	                      "rho0"            : 1000,
 	                      "interactionlen"  : 1.128,
+	                      "diameter"        : 0.5128,
 	                      "gravity"         : 10,
 	                      "dt"              : 0.015,
 	                      "domain"          : (20,20),
@@ -28,7 +29,6 @@ blockOfFluid = particleInit.ParticleInitData(
 	 					  "d_ii"            : Vec2(0,0),
 	 					  "sum_p_j_dij"     : Vec2(0,0),
 	 					  "fp_dt**2/m"      : Vec2(0,0)}
-
 )	 				
 
 IISPH = IISPH_Algorithm(W_4,gW_4,lW_v,omega = 0.5)

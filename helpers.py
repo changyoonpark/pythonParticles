@@ -22,9 +22,13 @@ class ParticlePair:
 
 class Vec2:
 
-	def __init__ (self,x,y):
-		self.x = x
-		self.y = y
+	def __init__ (self,x,y,tup = None):
+		if tup is not None :
+			self.x = tup[0]
+			self.y = tup[1]
+		else:
+			self.x = x
+			self.y = y
 
 	def length(self):
 		return sqrt(self.x*self.x+self.y*self.y)
