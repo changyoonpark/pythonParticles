@@ -27,7 +27,7 @@ class IISPH_Algorithm :
 			  						   self.integration,
 		 						   ]
 
-	def getAlgoProcedure(self):
+	def getAlgoProcedure(self): 
 		return self._proceduresInOrder
 
 	def calculateDensity(self,systemConstants,pairsData,particleSet):
@@ -38,6 +38,7 @@ class IISPH_Algorithm :
 				pairData = pairsData[(particle,neighbor)]
 				particle.particleVariables["rho"] += \
 					neighbor.particleVariables["mass"] * self.W(pairData,systemConstants["interactionlen"])
+			# print("Density of particle {} : {}".format(particle.pID,particle.particleVariables["rho"]))
 
 	def calculate_dii(self,systemConstants,pairsData,particleSet):
 		for particle in particleSet:
@@ -55,7 +56,10 @@ class IISPH_Algorithm :
 		particle.particleVariables["sum_pj_dij"] = Vec2(0,0)
 		for neighbor in particle.neighborList:
 			pairData = pairsData[(particle,neighbor)]
+			print("dij : {}".format(self.calculate_dij(pairData,systemConstants)))
 			particle.particleVariables["sum_pj_dij"] += self.calculate_dij(pairData,systemConstants) * neighbor.particleVariables["pressure"]
+		if particle.pID == 10:
+			print("sum_pj_dij for particle {} : {}".format(particle.pID,particle.particleVariables["sum_pj_dij"]))	
 
 	def calculate_dij(self,pairData,systemConstants):		
 		return (-systemConstants["dt"]**2 * pairData.particlej.particleVariables["mass"] / \
@@ -79,21 +83,21 @@ class IISPH_Algorithm :
 				particle.particleVariables["mass"] * systemConstants["gravity"] * Vec2(0,-1)
 
 	def calculateWall(self,systemConstants,pairsData,particleSet):
-		print(systemConstants)
+		# print(systemConstants)
 		walls = systemConstants["walls"]
 		domain = systemConstants["domain"]
 		for particle in particleSet:			
 			if particle.pos.y   < walls[1] : 
-				particle.particleVariables["f_adv"].y = particle.fext.y + 300 * particle.particleVariables["mass"] * pow(self.walls[0][1] - particle.pos.y,2)
+				particle.particleVariables["f_adv"].y = particle.fext.y + 300 * particle.particleVariables["mass"] * pow(walls[0][1] - particle.pos.y,2)
 				particle.particleVariables["f_adv"].y = particle.fext.y - particle.particleVariables["mass"] * 0.2 * particle.vel.y 
 			elif particle.pos.y > domain[1] - walls[1] : 
-				particle.particleVariables["f_adv"].y = particle.fext.y - 300 * particle.particleVariables["mass"] * pow(particle.pos.y - self.walls[1][1],2)
+				particle.particleVariables["f_adv"].y = particle.fext.y - 300 * particle.particleVariables["mass"] * pow(particle.pos.y - walls[1][1],2)
 				particle.particleVariables["f_adv"].y = particle.fext.y - particle.particleVariables["mass"] * 0.2 * particle.vel.y
 			if particle.pos.x   < walls[0] :
-				particle.particleVariables["f_adv"].x = particle.fext.x + 300 * particle.particleVariables["mass"] * pow(self.walls[0][0] - particle.pos.x,2)
+				particle.particleVariables["f_adv"].x = particle.fext.x + 300 * particle.particleVariables["mass"] * pow(walls[0][0] - particle.pos.x,2)
 				particle.particleVariables["f_adv"].x = particle.fext.x - particle.particleVariables["mass"] * 0.2 * particle.vel.x
 			elif particle.pos.x > domain[1] - walls[0] : 
-				particle.particleVariables["f_adv"].x = particle.fext.x - 300 * particle.particleVariables["mass"] * pow(particle.pos.x - self.walls[1][0],2)
+				particle.particleVariables["f_adv"].x = particle.fext.x - 300 * particle.particleVariables["mass"] * pow(particle.pos.x - walls[1][0],2)
 				particle.particleVariables["f_adv"].x = particle.fext.x - particle.particleVariables["mass"] * 0.2 * particle.vel.x
 
 
@@ -126,7 +130,7 @@ class IISPH_Algorithm :
 					neighbor.particleVariables["mass"] * \
 					(particle.particleVariables["d_ii"] - self.calculate_dij(pairData2,systemConstants)) \
 					.dot(self.gW(pairData,systemConstants["interactionlen"]))
-			print(particle.particleVariables["a_ii"])
+			# print("a_ii for particle {} : {}".format(particle.pID,particle.particleVariables["a_ii"]))
 
 	def calcAverageDensity(self,particleSet):
 		rhoAve = 0
@@ -157,14 +161,14 @@ class IISPH_Algorithm :
 			particle.particleVariables["pressure"] = 0.5 * particle.particleVariables["pressure"] 
 
 		densityDeviation = 1
-		while ( densityDeviation > 0.02 and l < 10):
+		while ( densityDeviation > 0.02 and l < 100):
 
 			print("Performing Jacobi iteration for pressure field. Iteration : {} / Average Density Deviation : {}".format(l,densityDeviation))
 
 			for particle in particleSet:
 				self.calculate_sum_pj_dij(particle,systemConstants,pairsData)
-				print("sumpjdij")
-				print(particle.particleVariables["sum_pj_dij"])
+				# print("sumpjdij")
+				# print(particle.particleVariables["sum_pj_dij"])
 
 			for particle in particleSet:
 				particle.particleVariables["pressure_est"] = self.estimatePressure(particle,systemConstants,pairsData,particleSet)
@@ -173,6 +177,9 @@ class IISPH_Algorithm :
 
 			for particle in particleSet:
 				particle.particleVariables["pressure"] = particle.particleVariables["pressure_est"]
+				particle.particleVariables["rho"] = systemConstants["rho0"] + particle.particleVariables["pressure"] / 10000
+				# if particle.pID == 10:
+					# print(particle)
 
 			densityDeviation = abs((self.calcAverageDensity(particleSet) - systemConstants["rho0"])/systemConstants["rho0"])
 			l += 1

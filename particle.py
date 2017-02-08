@@ -25,6 +25,18 @@ class Particle:
 	def initForce(self):
 		self.fext = Vec2(0,0)
 
+	def __str__(self):
+		s =  "---------------------------------------\n"
+		s += "Particle : {}\n".format(self.pID)
+		s += "position : {}\n".format(self.pos)
+		s += "velocity : {}\n".format(self.vel)
+		s += "acceler  : {}\n".format(self.acc)
+		s += "fext     : {}\n".format(self.fext)
+		s += "	>>> Particle Variable Dictionary <<<\n"
+		for key in self.particleVariables:
+			s += "{} : {}\n".format(key,self.particleVariables[key])
+		return s
+
 class ParticleSystem:
 	def __init__ (self,interactionAlgo,		       
 		               particleInitData
@@ -222,9 +234,9 @@ class ParticleSystem:
 						continue
 					self.collideCells((gridX,gridY),(gridX+i,gridY+j))
 
-		for particle in self.particleSet:
-			print("neighbor list for particle {}".format(particle.pID))
-			print(particle.neighborList)
+		# for particle in self.particleSet:
+			# print("neighbor list for particle {}".format(particle.pID))
+			# print(particle.neighborList)
 
 	def collideParticles(self,particle1,particle2):
 		if particle1 is particle2 :
@@ -239,6 +251,8 @@ class ParticleSystem:
 		relvel = (particle1.vel - particle2.vel)
 		dist = relpos.length()		
 		reldir = relpos.dir()
+		print("reldir:")
+		print(reldir)
 		if dist <= self.systemConstants["interactionlen"]:
 			if self.pairsData.get((particle1,particle2)) is None :
 

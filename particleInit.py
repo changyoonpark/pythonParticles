@@ -14,8 +14,8 @@ class ParticleInitData:
 		self.posDat = []
 		self.velDat = []
 
-		for i in range(0,12):
-			for j in range(0,12):
+		for i in range(0,20):
+			for j in range(0,30):
 				self.posDat.append(Vec2(d+d*i,
 					  					d+d*j))
 				self.velDat.append(Vec2(d+d*i,

@@ -37,7 +37,7 @@ class Vec2:
 		return self.x * other.x + self.y * other.y
 
 	def dir(self):
-		return self / self.length()
+		return self * (1./self.length())
 		# return Vec2(self.x / self.length(), self.y / self.length())
 
 	def __mul__ (self,other):
