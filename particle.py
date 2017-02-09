@@ -251,8 +251,8 @@ class ParticleSystem:
 		relvel = (particle1.vel - particle2.vel)
 		dist = relpos.length()		
 		reldir = relpos.dir()
-		print("reldir:")
-		print(reldir)
+		# print("reldir:")
+		# print(reldir)
 		if dist <= self.systemConstants["interactionlen"]:
 			if self.pairsData.get((particle1,particle2)) is None :
 
@@ -285,8 +285,8 @@ class ParticleSystem:
 		for particle in self.particleSet:
 			particle.hash = (int(particle.pos.x // self.hashGridSize),
 						     int(particle.pos.y // self.hashGridSize))
-			print(particle.pos)
-			print("----------")
+			# print(particle.pos)
+			# print("----------")
 			self.hashData[particle.hash[0]][particle.hash[1]].append(particle)
 
 
