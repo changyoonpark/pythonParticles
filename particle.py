@@ -125,9 +125,7 @@ class ParticleSystem:
 		for operation in self.operationFuncs:
 			operation(self.systemConstants,self.pairsData,particle)
 
-		self.boundaryInteractions()
-		self.forceSum()
-		return [particle.acc for particle in self.particleSet]
+		# return [particle.acc for particle in self.particleSet]
 
 	def mult(self,vecList,k):
 		return [vec * k for vec in vecList]
@@ -144,10 +142,7 @@ class ParticleSystem:
 		self.constructContacts()	
 
 		self.solveTimeStep()
-		# posBeforeUpdate = [particle.pos for particle in self.particleSet]
-		# velBeforeUpdate = [particle.vel for particle in self.particleSet]
-		# self.rk4(posBeforeUpdate,velBeforeUpdate)
-		# self.rk2(posBeforeUpdate,velBeforeUpdate)
+
 		pdat = self.getPoints()
 		print("time : {}".format(t))
 		toc()
@@ -239,13 +234,16 @@ class ParticleSystem:
 			# print(particle.neighborList)
 
 	def collideParticles(self,particle1,particle2):
-		if particle1 is particle2 :
-			# Enable if you want to not include the particle as a neighbor for itself
-			# return False
-			particle1.neighborList.append(particle1)
-			self.pairsData[(particle1,particle1)]  \
-			    = ParticlePair(particle1,particle1,Vec2(0,0),Vec2(0,0),0,Vec2(0,0))
-			return True
+		if particle1 is particle2:
+			if  self.pairsData.get((particle1,particle2)) is None:
+				# Enable if you want to not include the particle as a neighbor for itself
+				# return False
+				particle1.neighborList.append(particle1)
+				self.pairsData[(particle1,particle1)]  \
+				    = ParticlePair(particle1,particle1,Vec2(0,0),Vec2(0,0),0,Vec2(0,0))
+				return True
+			else:
+				return False
 
 		relpos = (particle1.pos - particle2.pos)
 		relvel = (particle1.vel - particle2.vel)
