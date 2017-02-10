@@ -73,8 +73,8 @@ class ParticleSystem:
 			velDat = particleInitData.velDat
 			for idx in range(0,len(posDat)) : 
 				newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
-					particleInitData.particleVariables
-					)
+									   dict(particleInitData.particleVariables)
+									   )
 				self.particleSet.append(newParticle)
 				num += 1
 
@@ -146,8 +146,8 @@ class ParticleSystem:
 		pdat = self.getPoints()
 		print("time : {}".format(t))
 		toc()
-		if t % 3 == 0:
-			self.scat.set_offsets(pdat)
+		# if t % 1 == 0:
+		self.scat.set_offsets(pdat)
 		# if t == 100:
 
 	def solveTimeStep(self):
@@ -205,8 +205,9 @@ class ParticleSystem:
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
 		self.scat = ax.scatter(xdat,ydat,
-						s=619*self.systemConstants["interactionlen"]**2,color = 'black',edgecolor= (1,1,1,0.5))
-		animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
+						s=100*self.systemConstants["interactionlen"]**2,color = 'black',edgecolor= (1,1,1,0.5))
+		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
+		animation = FuncAnimation(fig,self.update,interval=1)
 		plt.show()
 
 	def resetForceBuffer(self):
