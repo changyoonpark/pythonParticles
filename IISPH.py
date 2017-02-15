@@ -91,23 +91,18 @@ class IISPH_Algorithm :
 			if particle.pos.y   < walls[1] : 
 				particle.pos.y = walls[1]
 				particle.vel.y = 0
-				# particle.particleVariables["f_adv"].y = particle.fext.y + 300 * particle.particleVariables["mass"] * pow(walls[1] - particle.pos.y,2)
-				# particle.particleVariables["f_adv"].y = particle.fext.y - particle.particleVariables["mass"] * 10.0 * particle.vel.y 
+
 			elif particle.pos.y > domain[1] - walls[1] : 
 				particle.pos.y = domain[1] - walls[1]
 				particle.vel.y = 0
-				# particle.particleVariables["f_adv"].y = particle.fext.y - 300 * particle.particleVariables["mass"] * pow(particle.pos.y - (domain[1] - walls[1]),2)
-				# particle.particleVariables["f_adv"].y = particle.fext.y - particle.particleVariables["mass"] * 10.0 * particle.vel.y
+
 			if particle.pos.x   < walls[0] :
 				particle.pos.x = walls[0]
 				particle.vel.x = 0
-				# particle.particleVariables["f_adv"].x = particle.fext.x + 300 * particle.particleVariables["mass"] * pow(walls[0] - particle.pos.x,2)
-				# particle.particleVariables["f_adv"].x = particle.fext.x - particle.particleVariables["mass"] * 10.0 * particle.vel.x
+
 			elif particle.pos.x > domain[0] - walls[0] : 
 				particle.pos.x = domain[0] - walls[0]
 				particle.vel.x = 0
-				# particle.particleVariables["f_adv"].x = particle.fext.x - 300 * particle.particleVariables["mass"] * pow(particle.pos.x - (domain[0] - walls[0]),2)
-				# particle.particleVariables["f_adv"].x = particle.fext.x - particle.particleVariables["mass"] * 10.0 * particle.vel.x
 
 
 	def calculateAdvectionVel(self,systemConstants,pairsData,particleSet):
@@ -192,7 +187,7 @@ class IISPH_Algorithm :
 
 		densityDeviation = 1
 		foo = 0
-		while ( (densityDeviation > 0.0001 and l < 100 and l > 1)):
+		while ( (densityDeviation > 0.0001 and l < 100)):
 			if (abs(foo - densityDeviation) < 1E-6):
 				break
 

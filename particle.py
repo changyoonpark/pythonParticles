@@ -17,13 +17,9 @@ class Particle:
 		self.pos = pos
 		self.vel = Vec2(0,0)
 		self.acc = Vec2(0,0)
-		self.fext = Vec2(0,0)
 		self.particleVariables = particleVariables
 		self.hash = (-1,-1)
 		self.neighborList = []
-
-	def initForce(self):
-		self.fext = Vec2(0,0)
 
 	def __str__(self):
 		s =  "---------------------------------------\n"
@@ -114,25 +110,8 @@ class ParticleSystem:
 			pointData.append(np.array([particle.pos.x,particle.pos.y]))
 		return pointData
 
-	def setPosAndVel(self,posVector,velVector):
-		l = len(posVector)
-		for i in range(0,l):
-			self.particleSet[i].pos = posVector[i]
-			self.particleSet[i].vel = velVector[i]
-
 	def resetPairList(self):
 		self.pairsData.clear()
-
-	def calculateForces(self,withPos,withVel):
-		self.setPosAndVel(withPos,withVel)
-		self.resetForceBuffer()
-		self.resetPairList()
-		self.constructContacts()
-
-		for operation in self.operationFuncs:
-			operation(self.systemConstants,self.pairsData,particle)
-
-		# return [particle.acc for particle in self.particleSet]
 
 	def mult(self,vecList,k):
 		return [vec * k for vec in vecList]
@@ -165,48 +144,6 @@ class ParticleSystem:
 		for operation in self.interactionOperations:
 			operation(self.systemConstants,self.pairsData,self.particleSet)
 
-
-	def rk2(self,posBeforeUpdate,velBeforeUpdate):
-		k1 = (velBeforeUpdate,
-			  self.calculateForces(posBeforeUpdate,velBeforeUpdate))
-
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.systemConstants["dt"]))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.systemConstants["dt"]))
-		k2 = (intermediateVel,
-			  self.calculateForces(intermediatePos,intermediateVel))
-
-		l = len(k1)
-		for i in range(0,l):
-			self.particleSet[i].pos = posBeforeUpdate[i] + \
-						self.systemConstants["dt"]*(k1[0][i])
-			self.particleSet[i].vel = velBeforeUpdate[i] + \
-						self.systemConstants["dt"]*(k1[1][i])
-
-	def rk4(self,posBeforeUpdate,velBeforeUpdate):
-		k1 = (velBeforeUpdate,
-			  self.calculateForces(posBeforeUpdate,velBeforeUpdate))
-
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.systemConstants["dt"]))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.systemConstants["dt"]))
-		k2 = (intermediateVel,
-			  self.calculateForces(intermediatePos,intermediateVel))
-
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k2[0],0.5*self.systemConstants["dt"]))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k2[1],0.5*self.systemConstants["dt"]))
-		k3 = (intermediateVel,
-			  self.calculateForces(intermediatePos,intermediateVel))
-
-		intermediatePos = self.add(posBeforeUpdate,self.mult(k3[0],self.systemConstants["dt"]))
-		intermediateVel = self.add(velBeforeUpdate,self.mult(k3[1],self.systemConstants["dt"]))
-		k4 = (intermediateVel,
-			  self.calculateForces(intermediatePos,intermediateVel))
-		l = len(k1)
-		for i in range(0,l):
-			self.particleSet[i].pos = posBeforeUpdate[i] + \
-						(1.0/6.0)*self.systemConstants["dt"]*(k1[0][i]+2.0*k2[0][i]+2.0*k3[0][i]+k4[0][i])
-			self.particleSet[i].vel = velBeforeUpdate[i] + \
-						(1.0/6.0)*self.systemConstants["dt"]*(k1[1][i]+2.0*k2[1][i]+2.0*k3[1][i]+k4[1][i])
-
 	def run(self):
 
 		pointData = self.getPoints()
@@ -217,14 +154,6 @@ class ParticleSystem:
 		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
 		animation = FuncAnimation(self.fig,self.update,interval=1)
 		plt.show()
-
-	def resetForceBuffer(self):
-		for particle in self.particleSet:
-			particle.fext = Vec2(0.,0.)
-
-	def forceSum(self):
-		for particle in self.particleSet:
-			particle.acc = particle.fext / particle.particleVariables["mass"]
 
 	def constructContacts(self):
 		self.wipeNeighborList()
@@ -297,5 +226,49 @@ class ParticleSystem:
 			self.hashData[particle.hash[0]][particle.hash[1]].append(particle)
 
 
-	# def placeParticles(self,radius):
+
+
+
+#  NOT USED.
+
+	# def rk2(self,posBeforeUpdate,velBeforeUpdate):
+	# 	k1 = (velBeforeUpdate,
+	# 		  self.calculateForces(posBeforeUpdate,velBeforeUpdate))
+
+	# 	intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.systemConstants["dt"]))
+	# 	intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.systemConstants["dt"]))
+	# 	k2 = (intermediateVel,
+	# 		  self.calculateForces(intermediatePos,intermediateVel))
+
+	# 	l = len(k1)
+	# 	for i in range(0,l):
+	# 		self.particleSet[i].pos = posBeforeUpdate[i] + \
+	# 					self.systemConstants["dt"]*(k1[0][i])
+	# 		self.particleSet[i].vel = velBeforeUpdate[i] + \
+	# 					self.systemConstants["dt"]*(k1[1][i])
+
+	# def rk4(self,posBeforeUpdate,velBeforeUpdate):
+	# 	k1 = (velBeforeUpdate,
+	# 		  self.calculateForces(posBeforeUpdate,velBeforeUpdate))
+
+	# 	intermediatePos = self.add(posBeforeUpdate,self.mult(k1[0],0.5*self.systemConstants["dt"]))
+	# 	intermediateVel = self.add(velBeforeUpdate,self.mult(k1[1],0.5*self.systemConstants["dt"]))
+	# 	k2 = (intermediateVel,
+	# 		  self.calculateForces(intermediatePos,intermediateVel))
+
+	# 	intermediatePos = self.add(posBeforeUpdate,self.mult(k2[0],0.5*self.systemConstants["dt"]))
+	# 	intermediateVel = self.add(velBeforeUpdate,self.mult(k2[1],0.5*self.systemConstants["dt"]))
+	# 	k3 = (intermediateVel,
+	# 		  self.calculateForces(intermediatePos,intermediateVel))
+
+	# 	intermediatePos = self.add(posBeforeUpdate,self.mult(k3[0],self.systemConstants["dt"]))
+	# 	intermediateVel = self.add(velBeforeUpdate,self.mult(k3[1],self.systemConstants["dt"]))
+	# 	k4 = (intermediateVel,
+	# 		  self.calculateForces(intermediatePos,intermediateVel))
+	# 	l = len(k1)
+	# 	for i in range(0,l):
+	# 		self.particleSet[i].pos = posBeforeUpdate[i] + \
+	# 					(1.0/6.0)*self.systemConstants["dt"]*(k1[0][i]+2.0*k2[0][i]+2.0*k3[0][i]+k4[0][i])
+	# 		self.particleSet[i].vel = velBeforeUpdate[i] + \
+	# 					(1.0/6.0)*self.systemConstants["dt"]*(k1[1][i]+2.0*k2[1][i]+2.0*k3[1][i]+k4[1][i])
 
