@@ -49,6 +49,13 @@ class ParticleSystem:
 		self.animation = None
 		self.hashData = []
 		self.interactionOperations = interactionAlgo.getAlgoProcedure()
+		self.tstep = 0
+
+
+		self.fig = plt.figure(figsize=(7, 7))
+		self.ax = self.fig.add_axes([0, 0, 1, 1], frameon=True)
+		self.ax.set_xlim(0, self.dimLim.x)
+		self.ax.set_ylim(0, self.dimLim.y)
 
 		if particleInitData is None : 
 			self.systemConstants["interactionlen"] = 0.5			
@@ -146,7 +153,11 @@ class ParticleSystem:
 		pdat = self.getPoints()
 		print("time : {}".format(t))
 		toc()
-		# if t % 1 == 0:
+		if self.tstep % 20 == 0 :
+			plt.savefig("plots/"+str(self.tstep//20)+".png");
+			print("Exporting Plot")
+		self.tstep += 1
+
 		self.scat.set_offsets(pdat)
 		# if t == 100:
 
@@ -197,17 +208,14 @@ class ParticleSystem:
 						(1.0/6.0)*self.systemConstants["dt"]*(k1[1][i]+2.0*k2[1][i]+2.0*k3[1][i]+k4[1][i])
 
 	def run(self):
-		fig = plt.figure(figsize=(7, 7))
-		ax = fig.add_axes([0, 0, 1, 1], frameon=True)
-		ax.set_xlim(0, self.dimLim.x)
-		ax.set_ylim(0, self.dimLim.y)
+
 		pointData = self.getPoints()
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
-		self.scat = ax.scatter(xdat,ydat,
+		self.scat = self.ax.scatter(xdat,ydat,
 						s=100*self.systemConstants["interactionlen"]**2,color = 'black',edgecolor= (1,1,1,0.5))
 		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
-		animation = FuncAnimation(fig,self.update,interval=1)
+		animation = FuncAnimation(self.fig,self.update,interval=1)
 		plt.show()
 
 	def resetForceBuffer(self):
