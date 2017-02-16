@@ -17,17 +17,27 @@ class ParticlePair:
 		st += "Rel Dir : {}\n".format(self.reldir)		
 		return st
 
+	def swapIdx(self):
+		return (self.particlej,self.particlei)
+
 class Vec2:
 
-	def __init__ (self,x,y):
-		self.x = x
-		self.y = y
+	def __init__ (self,x,y,tup = None):
+		if tup is not None :
+			self.x = tup[0]
+			self.y = tup[1]
+		else:
+			self.x = x
+			self.y = y
 
 	def length(self):
 		return sqrt(self.x*self.x+self.y*self.y)
 
+	def dot(self,other):
+		return self.x * other.x + self.y * other.y
+
 	def dir(self):
-		return self / self.length()
+		return self * (1./self.length())
 		# return Vec2(self.x / self.length(), self.y / self.length())
 
 	def __mul__ (self,other):
