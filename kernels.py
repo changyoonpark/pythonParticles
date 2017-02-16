@@ -1,21 +1,28 @@
-class Kernel:
-	def __init__ (self,smoothingLength):
-		self.h = smoothingLength
+def W_4(pairDat,h):
+	q = pairDat.dist / (h)
+	if q >= 0 and q <=0.5 :
+		return (1.8189136353359467 / (h**2)) * \
+		       (1 - 6 * q**2 + 6 * q**3)
+	elif q > 0.5 and q <= 1 :
+		return (1.8189136353359467 / (h**2)) * \
+		       (2 * (1 - q)**3)
+	else :
+		return 0
 
-	def W(pairDat,h):
-		q = pairDat.dist / h
-		if q >= 0 and q <=1 :
-			return 0.34104630662549*((2-q)**3-4*(1-q))/(h**2)
-		elif q > 1 and q <= 2 :
-			return 0.34104630662549*(2-q)**3/(h**2)
-		else :
-			return 0
+def gW_4(pairDat,h):
+	q = pairDat.dist / (h)
+	if q >= 0 and q <= 0.5 :
+		return (1.8189136353359467 / (h**3)) * \
+			   (h - 12 * q + 18 * q**2) * pairDat.reldir
+	elif q >= 0.5 and q <= 1 :
+		return (1.8189136353359467 / (h**3)) * \
+		       (-6 * (1 - q)**2) * pairDat.reldir
+	else :
+		return Vec2(0,0)
 
-	def gradW(pairDat,h):
-		q = pairDat.dist / h
-		if q >= 0 and q <= 1 :
-			return 0.34104630662549*(4-3*(q-2)**2)/(pairDat.dist*h**2)*pairDat.reldir
-		elif q >= 1 and q <= 2 :
-			return 0.34104630662549*( -3*(2-q)**2)/(pairDat.dist*h**2)*pairDat.reldir
-		else :
-			return Vec2(0,0)
+def lW_v(pairDat,h):
+	q = pairDat.dist / (h)
+	if q >= 0 and q <= 1:
+		return (12.732395447351628 / (h**4)) * (1 - q)
+	else : 
+		return 0
