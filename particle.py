@@ -35,8 +35,8 @@ class Particle:
 
 class ParticleSystem:
 	def __init__ (self,interactionAlgo,		       
-		               particleInitData
-		               ):
+		               particleInitData,
+		               boundaryInitData):
 
 		self.systemConstants = dict()
 		self.particleSet = []
@@ -44,44 +44,39 @@ class ParticleSystem:
 		self.scat = None
 		self.animation = None
 		self.hashData = []
-		self.interactionOperations = interactionAlgo.getAlgoProcedure()
 		self.tstep = 0
+		self.interactionAlgo = interactionAlgo
 
-
+		print("Initializing matplotlib")
 		self.fig = plt.figure(figsize=(7, 7))
 		self.ax = self.fig.add_axes([0, 0, 1, 1], frameon=True)
 		self.ax.set_xlim(0, self.dimLim.x)
 		self.ax.set_ylim(0, self.dimLim.y)
 
-		if particleInitData is None : 
-			self.systemConstants["interactionlen"] = 0.5			
-			il = self.systemConstants["interactionlen"]
-			num = 0
-			for i in range(1,11):
-				for j in range(1,11):
-					newParticle = Particle(num,
-										   Vec2(self.systemConstants["interactionlen"]+il*i,
-										   	    self.systemConstants["interactionlen"]+il*j),
-										   Vec2(0,0),Vec2(0,0),
-										   0.1,0.1)
-					self.particleSet.append(newParticle)
-					num += 1
-			print("Placed {} Particles.".format(num))
+		print("Reading initial particle data")
+		num = 0
+		self.systemConstants = particleInitData.systemConstants			
+		posDat = particleInitData.posDat
+		velDat = particleInitData.velDat
+		for idx in range(0,len(posDat)) : 
+			newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
+								   dict(particleInitData.particleVariables)
+								   )
+			newParticle.particleVariables["isBoundary"] = False
+			self.particleSet.append(newParticle)
+			num += 1
 
-		else : 
-			print("Reading initial particle data")
-			num = 0
-			self.systemConstants = particleInitData.systemConstants			
-			posDat = particleInitData.posDat
-			velDat = particleInitData.velDat
-			for idx in range(0,len(posDat)) : 
-				newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
-									   dict(particleInitData.particleVariables)
-									   )
-				self.particleSet.append(newParticle)
-				num += 1
+		print("Initializing boundary particle data")
+		posDat = boundaryInitData.posDat
+		for idx in range(0,len(posDat)) :
+			newBoundaryParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
+								   dict())
+			newBoundaryParticle.particleVariables["isBoundary"] = True
+			newBoundaryParticle.vel = Vec2(0,0)
+			self.particleSet.append(newBoundaryParticle)
+			num += 1
 
-
+		print("Hashing Particle Data")
 		self.hashGridSize = self.systemConstants["interactionlen"] * 1.5
 		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
 			            int(self.dimLim.y // self.hashGridSize) + 1)
@@ -141,7 +136,7 @@ class ParticleSystem:
 		# if t == 100:
 
 	def solveTimeStep(self):
-		for operation in self.interactionOperations:
+		for operation in self.interactionAlgo.getAlgoProcedure(self.tstep):
 			operation(self.systemConstants,self.pairsData,self.particleSet)
 
 	def run(self):
