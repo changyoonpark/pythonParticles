@@ -9,7 +9,7 @@ sysConsts = { "viscosity"       : 0.3,
               "interactionlen"  : 0.51,
               "diameter"        : 0.25,
               "gravity"         : 10,
-              "dt"              : 0.005,
+              "dt"              : 0.001,
               "domain"          : (30,30),
               "walls"           : (0.5,0.5),
 	        }

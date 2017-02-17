@@ -43,6 +43,7 @@ class IISPH_Algorithm :
 						pairData = pairsData[(particle,neighbor)]
 						particle.particleVariables["nDens"] += self.W(pairData,systemConstants["interactionlen"])
 				particle.particleVariables["psi"] = systemConstants["rho0"] / particle.particleVariables["nDens"]
+				# print(particle.particleVariables["psi"])
 
 	def calculateDensity(self,systemConstants,pairsData,particleSet):
 		for particle in particleSet:
@@ -51,8 +52,12 @@ class IISPH_Algorithm :
 				particle.particleVariables["rho"] = 0
 				for neighbor in particle.neighborList:
 					pairData = pairsData[(particle,neighbor)]
-					particle.particleVariables["rho"] += \
-						neighbor.particleVariables["mass"] * self.W(pairData,systemConstants["interactionlen"])
+					if neighbor.particleVariables["isBoundary"] is False:
+						particle.particleVariables["rho"] += \
+							neighbor.particleVariables["mass"] * self.W(pairData,systemConstants["interactionlen"])
+					else:
+						particle.particleVariables["rho"] += \
+							neighbor.particleVariables["psi"] * self.W(pairData,systemConstants["interactionlen"])
 
 			# particle.particleVariables["rho"] = max(particle.particleVariables["rho"], systemConstants["rho0"])
 
@@ -66,13 +71,13 @@ class IISPH_Algorithm :
 				for neighbor in particle.neighborList:
 					pairData = pairsData[(particle,neighbor)]
 
-					if neighbor.particleVariables["isBoundary"] is not True:
+					if neighbor.particleVariables["isBoundary"] is False:
 						particle.particleVariables["d_ii"] -= \
 							neighbor.particleVariables["mass"] / (particle.particleVariables["rho"]**2) * \
 							self.gW(pairData,systemConstants["interactionlen"])
 					else:
 						particle.particleVariables["d_ii"] -= \
-							neighbor.particleVariables["psi"] / (systemConstants["rho0"]**2) * \
+							neighbor.particleVariables["psi"] / (particle.particleVariables["rho"]**2) * \
 							self.gW(pairData,systemConstants["interactionlen"])	
 
 				particle.particleVariables["d_ii"] = particle.particleVariables["d_ii"] * systemConstants["dt"]**2
@@ -89,6 +94,7 @@ class IISPH_Algorithm :
 	def calculate_dij(self,pairData,systemConstants):		
 		return (-systemConstants["dt"]**2 * pairData.particlej.particleVariables["mass"] / \
 			   (pairData.particlej.particleVariables["rho"]**2)) * self.gW(pairData,systemConstants["interactionlen"])
+
 
 	def calculateAdvectionForce(self,systemConstants,pairsData,particleSet):
 		for particle in particleSet:
@@ -143,12 +149,13 @@ class IISPH_Algorithm :
 			# 	calculate a_ii for relaxed jacobi
 				particle.particleVariables["a_ii"] = 0
 				for neighbor in particle.neighborList:
-					pairData  = pairsData[(particle,neighbor)]
-					pairData2 = pairsData[(neighbor,particle)] 
-					particle.particleVariables["a_ii"] += \
-					  	 neighbor.particleVariables["mass"] * \
-						(particle.particleVariables["d_ii"] - self.calculate_dij(pairData2,systemConstants)) \
-						.dot(self.gW(pairData,systemConstants["interactionlen"]))
+					if neighbor.particleVariables["isBoundary"] is False:
+						pairData  = pairsData[(particle,neighbor)]
+						pairData2 = pairsData[(neighbor,particle)] 
+						particle.particleVariables["a_ii"] += \
+						  	 neighbor.particleVariables["mass"] * \
+							(particle.particleVariables["d_ii"] - self.calculate_dij(pairData2,systemConstants)) \
+							.dot(self.gW(pairData,systemConstants["interactionlen"]))
 
 				# particle.particleVariables["a_ii"] = max(particle.particleVariables["a_ii"],0)
 
@@ -163,11 +170,47 @@ class IISPH_Algorithm :
 
 		return rhoAve / numP
 
+	def estimateDensity(self,particle,pairsData,systemConstants):
+		# junk = 0
+		if particle.particleVariables["isBoundary"] is False:
+			if particle.particleVariables["pressure_est"] > 0:
+				particle.particleVariables["rho_est"] = 0
+
+				for neighbor in particle.neighborList:
+					# pairData2 = pairsData[(neighbor,particle)]
+
+					# if neighbor.particleVariables["isBoundary"] is False:
+					# 	junk +=    neighbor.particleVariables["mass"] * \
+					# 			(  particle.particleVariables["sum_pj_dij"] - neighbor.particleVariables["d_ii"] * neighbor.particleVariables["pressure"]\
+					# 			 - neighbor.particleVariables["sum_pj_dij"] + self.calculate_dij(pairData2,systemConstants) * particle.particleVariables["pressure"])\
+					# 			 .dot(self.gW(pairData,systemConstants["interactionlen"]))
+					# else:
+					# 	junk +=    neighbor.particleVariables["psi"] * \
+					# 			  (particle.particleVariables["sum_pj_dij"]).dot(self.gW(pairData,systemConstants["interactionlen"]))
+
+				# particle.particleVariables["rho_est"] = (particle.particleVariables["a_ii"] * particle.particleVariables["pressure"] + junk)\
+														 # + particle.particleVariables["rho_adv"]
+
+
+					pairData  = pairsData[(particle,neighbor)]
+					if neighbor.particleVariables["isBoundary"] is False:
+						particle.particleVariables["rho_est"] += neighbor.particleVariables["mass"] * (particle.particleVariables["f_p"] / particle.particleVariables["mass"] - neighbor.particleVariables["f_p"] / neighbor.particleVariables["mass"])\
+						.dot(self.gW(pairData,systemConstants["interactionlen"]))
+					else:
+						particle.particleVariables["rho_est"] += neighbor.particleVariables["psi"] * (particle.particleVariables["f_p"] / particle.particleVariables["mass"])\
+						.dot(self.gW(pairData,systemConstants["interactionlen"]))
+
+				particle.particleVariables["rho_est"] = particle.particleVariables["rho_est"] * (systemConstants["dt"] ** 2)
+				particle.particleVariables["rho_est"] += particle.particleVariables["rho_adv"]
+
+
+			else:
+				particle.particleVariables["rho_est"] = systemConstants["rho0"]
+
 
 	def estimatePressure(self,particle,systemConstants,pairsData,particleSet):
 		junk = 0
 		if particle.particleVariables["isBoundary"] is False: 
-
 			for neighbor in particle.neighborList:
 				pairData  = pairsData[(particle,neighbor)]
 				pairData2 = pairsData[(neighbor,particle)]
@@ -191,13 +234,6 @@ class IISPH_Algorithm :
 				pres =  max(0,pres)
 			else:
 				pres = 0
-
-			if pres > 0:
-				particle.particleVariables["rho_est"] = (particle.particleVariables["a_ii"] * particle.particleVariables["pressure"] + junk)\
-														 + particle.particleVariables["rho_adv"]
-			else:
-				particle.particleVariables["rho_est"] = systemConstants["rho0"]
-
 			# print(pres)
 
 			particle.particleVariables["pressure_est"] = pres
@@ -214,7 +250,7 @@ class IISPH_Algorithm :
 
 		densityDeviation = 1
 		foo = 0
-		while ( (densityDeviation > 0.0001 and l < 100)):
+		while ( (densityDeviation > 0.001 and l < 100)):
 			if (abs(foo - densityDeviation) < 1E-6):
 				break
 
@@ -226,6 +262,9 @@ class IISPH_Algorithm :
 
 			for particle in particleSet:
 				self.calculatePressureForce(particle,pairsData,systemConstants)
+
+			for particle in particleSet:
+				self.estimateDensity(particle,pairsData,systemConstants)
 
 			for particle in particleSet:
 				if particle.particleVariables["isBoundary"] is False:
@@ -245,7 +284,7 @@ class IISPH_Algorithm :
 			for neighbor in particle.neighborList:
 				pairData = pairsData[(particle,neighbor)]
 				if neighbor.particleVariables["isBoundary"] is False:
-					particle.particleVariables["f_p"] += (-self.calculate_dij(pairData,systemConstants))
+					particle.particleVariables["f_p"] += (self.calculate_dij(pairData,systemConstants) * neighbor.particleVariables["pressure"])
 
 			particle.particleVariables["f_p"] += particle.particleVariables["d_ii"] * particle.particleVariables["pressure"]
 			particle.particleVariables["f_p"] = particle.particleVariables["f_p"] * particle.particleVariables["mass"] / (systemConstants["dt"])**2
@@ -272,8 +311,9 @@ class IISPH_Algorithm :
 			self.calculatePressureForce(particle,pairsData,systemConstants)
 
 		for particle in particleSet:
-			particle.vel += particle.particleVariables["f_p"] / particle.particleVariables["mass"] * systemConstants["dt"]
-			particle.pos += systemConstants["dt"] * particle.vel
+			if particle.particleVariables["isBoundary"] is False:
+				particle.vel += particle.particleVariables["f_p"] / particle.particleVariables["mass"] * systemConstants["dt"]
+				particle.pos += systemConstants["dt"] * particle.vel
 
 
 
