@@ -105,6 +105,13 @@ class ParticleSystem:
 			pointData.append(np.array([particle.pos.x,particle.pos.y]))
 		return pointData
 
+	def getPressure(self):
+		pressureData = []
+		for particle in self.particleSet:
+			if particle.particleVariables["isBoundary"] is False :
+				pressureData.append(np.array([particle.particleVariables["pressure"]]))
+		return pressureData
+
 	def resetPairList(self):
 		self.pairsData.clear()
 
@@ -127,9 +134,11 @@ class ParticleSystem:
 		pdat = self.getPoints()
 		print("time : {}".format(t))
 		toc()
-		if self.tstep % 20 == 0 :
-			plt.savefig("plots/"+str(self.tstep//20)+".png");
-			print("Exporting Plot")
+
+		# if self.tstep % 20 == 0 :
+			# plt.savefig("plots/"+str(self.tstep//20)+".png");
+			# print("Exporting Plot")
+
 		self.tstep += 1
 
 		self.scat.set_offsets(pdat)
@@ -142,12 +151,16 @@ class ParticleSystem:
 	def run(self):
 
 		pointData = self.getPoints()
+		pressureData = self.getPressure()
+
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
-		self.scat = self.ax.scatter(xdat,ydat,
-						s=100*self.systemConstants["interactionlen"]**2,color = 'black',edgecolor= (1,1,1,0.5))
+		pdat = np.array([[p,p,p] for p in pressureData])
+		self.scat = self.ax.scatter(xdat,ydat,c = pdat,
+						s=100*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
 		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
 		animation = FuncAnimation(self.fig,self.update,interval=1)
+
 		plt.show()
 
 	def constructContacts(self):

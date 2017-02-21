@@ -4,12 +4,12 @@ from IISPH import IISPH_Algorithm
 import particleInit
 
 
-sysConsts = { "viscosity"       : 0.3,
+sysConsts = { "viscosity"       : 0,
               "rho0"            : 1000,
               "interactionlen"  : 0.51,
               "diameter"        : 0.25,
-              "gravity"         : 10,
-              "dt"              : 0.001,
+              "gravity"         : 0,
+              "dt"              : 0.0001,
               "domain"          : (30,30),
               "walls"           : (0.5,0.5),
 	        }
