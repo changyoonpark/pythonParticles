@@ -279,40 +279,54 @@ class IISPH_Algorithm :
 			print("Performing Jacobi iteration for pressure field. Iteration : {} / Average Density Deviation : {}".format(l,densityDeviation))
 			l += 1
 
-		for particle in particleSet:
-			if particle.particleVariables["isBoundary"] is False:
-				if particle.particleVariables["rho"] < systemConstants["rho0"] :
-					print(particle.particleVariables["pressure"])
+		# for particle in particleSet:
+			# if particle.particleVariables["isBoundary"] is False:
+				# if particle.particleVariables["rho"] < systemConstants["rho0"] :
+					# print(particle.particleVariables["pressure"])
 
 
 					
 	def calculatePressureForce(self,particle,pairsData,systemConstants):
 
+		# return (-systemConstants["dt"]**2 * pairData.particlej.particleVariables["mass"] / \
+		# 	   (pairData.particlej.particleVariables["rho"]**2)) * self.gW(pairData,systemConstants["interactionlen"])
+
+
+
+		# if particle.particleVariables["isBoundary"] is False:
+
+
+		# 	particle.particleVariables["f_p"] = Vec2(0,0)
+		# 	for neighbor in particle.neighborList:
+
+		# 		pairData = pairsData[(particle,neighbor)]
+
+		# 		if neighbor.particleVariables["isBoundary"] is False:
+		# 			particle.particleVariables["f_p"] += (self.calculate_dij(pairData,systemConstants) * neighbor.particleVariables["pressure"])
+
+		# 	particle.particleVariables["f_p"] += particle.particleVariables["d_ii"] * particle.particleVariables["pressure"]
+		# 	particle.particleVariables["f_p"] = particle.particleVariables["f_p"] * particle.particleVariables["mass"] / (systemConstants["dt"])**2
+		# 	print("----")
+		# 	print(particle.particleVariables["f_p"])
+
 		if particle.particleVariables["isBoundary"] is False:
 
 			particle.particleVariables["f_p"] = Vec2(0,0)
 			for neighbor in particle.neighborList:
+
 				pairData = pairsData[(particle,neighbor)]
+
 				if neighbor.particleVariables["isBoundary"] is False:
-					particle.particleVariables["f_p"] += (self.calculate_dij(pairData,systemConstants) * neighbor.particleVariables["pressure"])
+					particle.particleVariables["f_p"] += \
+					              -particle.particleVariables["mass"] * neighbor.particleVariables["mass"] * \
+					              (particle.particleVariables["pressure"] / ( particle.particleVariables["rho"] ** 2 ) + \
+					               neighbor.particleVariables["pressure"] / ( neighbor.particleVariables["rho"] ** 2 )) \
+					              *self.gW(pairData,systemConstants["interactionlen"])
 
-			particle.particleVariables["f_p"] += particle.particleVariables["d_ii"] * particle.particleVariables["pressure"]
-			particle.particleVariables["f_p"] = particle.particleVariables["f_p"] * particle.particleVariables["mass"] / (systemConstants["dt"])**2
-
-		# if particle.particleVariables["isBoundary"] is False:
-		# 	for neighbor in particle.neighborList:
-		# 		pairData = pairsData[(particle,neighbor)]
-
-		# 		if neighbor.particleVariables["isBoundary"] is False:
-		# 			particle.particleVariables["f_p"] += \
-		# 			              -particle.particleVariables["mass"] * neighbor.particleVariables["mass"] * \
-		# 			              (particle.particleVariables["pressure"]/(particle.particleVariables["rho"]**2) + \
-		# 			               neighbor.particleVariables["pressure"]/(neighbor.particleVariables["rho"]**2))*self.gW(pairData,systemConstants["interactionlen"])
-		# 		else:
-		# 			particle.particleVariables["f_p"] += \
-		# 			              -particle.particleVariables["mass"] * neighbor.particleVariables["psi"] * \
-		# 			              (particle.particleVariables["pressure"]/(particle.particleVariables["rho"]**2) + \
-		# 			               neighbor.particleVariables["pressure"]/(neighbor.particleVariables["rho"]**2))*self.gW(pairData,systemConstants["interactionlen"])
+				else:					
+					particle.particleVariables["f_p"] += \
+					              -particle.particleVariables["mass"] * neighbor.particleVariables["psi"] * \
+					              (particle.particleVariables["pressure"]/(particle.particleVariables["rho"]**2))*self.gW(pairData,systemConstants["interactionlen"])
 
 
 

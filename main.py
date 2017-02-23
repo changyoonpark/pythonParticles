@@ -4,17 +4,18 @@ from IISPH import IISPH_Algorithm
 import particleInit
 
 
-sysConsts = { "viscosity"       : 0,
+sysConsts = { "viscosity"       : 0.0 ,
               "rho0"            : 1000,
               "interactionlen"  : 0.51,
               "diameter"        : 0.25,
               "gravity"         : 0,
-              "dt"              : 0.0001,
-              "domain"          : (30,30),
+              "dt"              : 0.001,
+              "domain"          : (10,10),
               "walls"           : (0.5,0.5),
 	        }
 
 pVars = {     "mass"            : 0.0625 * 1000,
+              "rho"             : 1000,
 			  "pressure"        : 0,
 			  "pressure_est"    : 0}
 
@@ -35,4 +36,4 @@ psys = ParticleSystem(
     particleInitData     = blockOfFluid,
     boundaryInitData     = simpleWall)
 print("Starting Simulation.")
-psys.run()
+psys.run()      

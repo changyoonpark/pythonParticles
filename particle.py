@@ -15,7 +15,7 @@ class Particle:
 		          particleVariables):
 		self.pID = pID
 		self.pos = pos
-		self.vel = Vec2(0,0)
+		self.vel = vel
 		self.acc = Vec2(0,0)
 		self.particleVariables = particleVariables
 		self.hash = (-1,-1)
@@ -58,7 +58,7 @@ class ParticleSystem:
 		self.systemConstants = particleInitData.systemConstants			
 		posDat = particleInitData.posDat
 		velDat = particleInitData.velDat
-		for idx in range(0,len(posDat)) : 
+		for idx in range(0,len(posDat)) :
 			newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
 								   dict(particleInitData.particleVariables)
 								   )
@@ -67,9 +67,9 @@ class ParticleSystem:
 			num += 1
 
 		print("Initializing boundary particle data")
-		posDat = boundaryInitData.posDat
-		for idx in range(0,len(posDat)) :
-			newBoundaryParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
+		bPosDat = boundaryInitData.posDat
+		for idx in range(0,len(bPosDat)) :
+			newBoundaryParticle = Particle(num,bPosDat[idx],Vec2(0,0),Vec2(0,0),
 								   dict())
 			newBoundaryParticle.particleVariables["isBoundary"] = True
 			newBoundaryParticle.vel = Vec2(0,0)
@@ -112,6 +112,21 @@ class ParticleSystem:
 				pressureData.append(np.array([particle.particleVariables["pressure"]]))
 		return pressureData
 
+	def getDensity(self):
+		densData = []
+		for particle in self.particleSet:
+			if particle.particleVariables["isBoundary"] is False :
+				densData.append(particle.particleVariables["rho"])
+			else:
+				densData.append(-1)
+
+		dmax = max(densData)
+		dmin = min(densData)
+		print(densData)
+		ddat = [(1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01)) for d in densData]
+
+		return ddat
+
 	def resetPairList(self):
 		self.pairsData.clear()
 
@@ -132,6 +147,7 @@ class ParticleSystem:
 		self.solveTimeStep()
 
 		pdat = self.getPoints()
+		ddat = self.getDensity()
 		print("time : {}".format(t))
 		toc()
 
@@ -142,6 +158,7 @@ class ParticleSystem:
 		self.tstep += 1
 
 		self.scat.set_offsets(pdat)
+		self.scat.set_color(ddat)
 		# if t == 100:
 
 	def solveTimeStep(self):
@@ -151,13 +168,13 @@ class ParticleSystem:
 	def run(self):
 
 		pointData = self.getPoints()
-		pressureData = self.getPressure()
+		densData = self.getDensity()
 
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
-		pdat = np.array([[p,p,p] for p in pressureData])
-		self.scat = self.ax.scatter(xdat,ydat,c = pdat,
-						s=100*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+		
+		self.scat = self.ax.scatter(xdat,ydat,c=densData,
+						s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
 		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
 		animation = FuncAnimation(self.fig,self.update,interval=1)
 

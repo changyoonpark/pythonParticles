@@ -14,12 +14,12 @@ class ParticleInitData:
 		self.posDat = []
 		self.velDat = []
 
-		for i in range(0,40):
-			for j in range(0,40):
-				self.posDat.append(Vec2(10.0+d+d*i,
-					  					1.0+d+d*j))
+		for i in range(0,20):
+			for j in range(0,20):
+				self.posDat.append(Vec2(1.05+d+d*i,
+					  					1.01+d+d*j))
 				self.velDat.append(Vec2(0,
-					  					0))
+					  					-1))
 
 class BoundaryInitData:
 
