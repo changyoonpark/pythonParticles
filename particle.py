@@ -176,11 +176,11 @@ class ParticleSystem:
 		# if self.tstep % 20 == 0 :
 			# plt.savefig("plots/"+str(self.tstep//20)+".png");
 			# print("Exporting Plot")
-		figg = plt.figure()
-		axx = figg.add_subplot(111)
-		axx.spy(self.systemConstants["aMatrix"])
-		print(self.systemConstants["aMatrix"].max())
-		plt.show()
+		# figg = plt.figure()
+		# axx = figg.add_subplot(111)
+		# axx.spy(self.systemConstants["aMatrix"])
+		# print(self.systemConstants["aMatrix"].max())
+		# plt.show()
 
 		self.tstep += 1
 		self.scat.set_offsets(pdat)

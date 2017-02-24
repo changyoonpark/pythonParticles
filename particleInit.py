@@ -16,10 +16,14 @@ class ParticleInitData:
 
 		for i in range(0,20):
 			for j in range(0,20):
-				self.posDat.append(Vec2(1.05+d+d*i,
-					  					1.01+d+d*j))
+				self.posDat.append(Vec2(1.5+d+d*i,
+					  					1.05+d+d*j))
+				# if j < 5 and i > 5 and i < 15 : 
+				# 	vel = 10
+				# else:
+				# 	vel = 0
 				self.velDat.append(Vec2(0,
-					  					-1))
+					  					0))
 
 class BoundaryInitData:
 
@@ -34,13 +38,13 @@ class BoundaryInitData:
 
 		self.wallParticleDiameter = (systemConstants["domain"][0]-2) / numX
 
-		for i in range(0,numX):
-			self.posDat.append(Vec2(padding - d + i * d, padding    ))
-			self.posDat.append(Vec2(padding - d + i * d, padding - d))
+		# for i in range(0,numX):
+		# 	self.posDat.append(Vec2(padding - d + i * d, padding    ))
+		# 	self.posDat.append(Vec2(padding - d + i * d, padding - d))
 
-		for j in range(0,numY):
-			self.posDat.append(Vec2(padding - d, padding + d + j * d ))
-			self.posDat.append(Vec2(padding    , padding + d + j * d ))
-			self.posDat.append(Vec2(systemConstants["domain"][0] - padding    , padding + d + j * d ))
-			self.posDat.append(Vec2(systemConstants["domain"][0] - padding + d, padding + d + j * d ))
+		# for j in range(0,numY):
+		# 	self.posDat.append(Vec2(padding - d, padding + d + j * d ))
+		# 	self.posDat.append(Vec2(padding    , padding + d + j * d ))
+		# 	self.posDat.append(Vec2(systemConstants["domain"][0] - padding    , padding + d + j * d ))
+		# 	self.posDat.append(Vec2(systemConstants["domain"][0] - padding + d, padding + d + j * d ))
 

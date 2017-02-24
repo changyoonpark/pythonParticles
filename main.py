@@ -6,10 +6,10 @@ import particleInit
 
 sysConsts = { "viscosity"       : 0.0 ,
               "rho0"            : 1000,
-              "interactionlen"  : 0.51,
+              "interactionlen"  : 0.52,
               "diameter"        : 0.25,
               "gravity"         : 0,
-              "dt"              : 0.1,
+              "dt"              : 0.0001,
               "domain"          : (10,10),
               "walls"           : (0.5,0.5),
 	        }
