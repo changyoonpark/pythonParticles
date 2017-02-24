@@ -2,6 +2,7 @@ import cProfile
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy as sp
 from matplotlib.animation import FuncAnimation
 from multiprocessing import Process, Queue
 from timer import *
@@ -47,6 +48,7 @@ class ParticleSystem:
 		self.tstep = 0
 		self.interactionAlgo = interactionAlgo
 
+
 		print("Initializing matplotlib")
 		self.fig = plt.figure(figsize=(7, 7))
 		self.ax = self.fig.add_axes([0, 0, 1, 1], frameon=True)
@@ -65,6 +67,13 @@ class ParticleSystem:
 			newParticle.particleVariables["isBoundary"] = False
 			self.particleSet.append(newParticle)
 			num += 1
+
+		print("Initializing Matrix")
+
+		self.systemConstants["aMatrix"] = np.zeros((len(self.particleSet),len(self.particleSet)),dtype = float)
+		self.systemConstants["pVector"] = np.zeros((len(self.particleSet),1),dtype = float)
+		self.systemConstants["bVector"] = np.zeros((len(self.particleSet),1),dtype = float)
+
 
 		print("Initializing boundary particle data")
 		bPosDat = boundaryInitData.posDat
@@ -114,16 +123,28 @@ class ParticleSystem:
 
 	def getDensity(self):
 		densData = []
+		ddat = []
+
+		dmax = -1
+		dmin = 9999
+
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
+				if particle.particleVariables["rho"] > dmax:
+					dmax = particle.particleVariables["rho"]
+				if particle.particleVariables["rho"] < dmin:
+					dmin = particle.particleVariables["rho"]
+
 				densData.append(particle.particleVariables["rho"])
 			else:
-				densData.append(-1)
+				densData.append(None)
 
-		dmax = max(densData)
-		dmin = min(densData)
-		print(densData)
-		ddat = [(1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01)) for d in densData]
+
+		for d in densData:
+			if d is None : 
+				ddat.append((1,0,0))
+			else:
+				ddat.append((1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01)))
 
 		return ddat
 
@@ -148,15 +169,20 @@ class ParticleSystem:
 
 		pdat = self.getPoints()
 		ddat = self.getDensity()
+
 		print("time : {}".format(t))
 		toc()
 
 		# if self.tstep % 20 == 0 :
 			# plt.savefig("plots/"+str(self.tstep//20)+".png");
 			# print("Exporting Plot")
+		figg = plt.figure()
+		axx = figg.add_subplot(111)
+		axx.spy(self.systemConstants["aMatrix"])
+		print(self.systemConstants["aMatrix"].max())
+		plt.show()
 
 		self.tstep += 1
-
 		self.scat.set_offsets(pdat)
 		self.scat.set_color(ddat)
 		# if t == 100:

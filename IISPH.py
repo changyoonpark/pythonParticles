@@ -1,5 +1,7 @@
 # from interactionAlgorithm import *
 from helpers import *
+import scipy as sp
+
 
 # Inherits from InteractionAlgorithm
 class IISPH_Algorithm :
@@ -15,6 +17,7 @@ class IISPH_Algorithm :
 		self.gW = gW
 		self.lW = lW
 		self.currentTime = 0
+
 		self._proceduresInOrder =  [
 									   self.calculateDensity,
 			  						   self.calculateAdvectionForce,
@@ -22,9 +25,65 @@ class IISPH_Algorithm :
 			  						   self.calculate_dii,
 			  						   self.calculateAdvectionDensity,
 			  						   self.calculate_aii,
+			  						   self.constructMatrix,			  						   
 			  						   self.pressureSolver,
 			  						   self.integration,
 		 						   ]
+
+
+
+	def constructMatrix(self,systemConstants, pairsData, particleSet):
+
+		for particle in particleSet:
+
+			if particle.particleVariables["isBoundary"] is False:
+
+				i = particle.pID
+
+				systemConstants["bVector"][i] += systemConstants["rho0"] - particle.particleVariables["rho_adv"]
+
+				omega = Vec2(0,0)
+				for neighbor in particle.neighborList:					
+					if neighbor.particleVariables["isBoundary"] is False:				
+						pairIJ = pairsData[(particle,neighbor)]
+						omega += neighbor.particleVariables["mass"] * self.gW(pairIJ,systemConstants["interactionlen"])
+
+				# Diagonal
+				systemConstants["aMatrix"][i,i] += particle.particleVariables["d_ii"].dot(omega)
+
+				# "j" Columns
+				for neighbor in particle.neighborList:
+					if neighbor.particleVariables["isBoundary"] is False:
+						j = neighbor.pID
+						pairIJ = pairsData[(particle,neighbor)]
+
+						systemConstants["aMatrix"][i,j] -= (neighbor.particleVariables["d_ii"] * neighbor.particleVariables["mass"])\
+		            						.dot(self.gW(pairIJ,systemConstants["interactionlen"]))
+
+				# "k" Columns
+				for neighbor in particle.neighborList:
+					if neighbor.particleVariables["isBoundary"] is False:										
+						pairIJ = pairsData[(particle,neighbor)]
+
+						for nneighbor in neighbor.neighborList:					
+							if nneighbor.particleVariables["isBoundary"] is False:
+								k = nneighbor.pID
+								pairJK = pairsData[(neighbor,nneighbor)]
+
+								systemConstants["aMatrix"][i,k] -= (self.calculate_dij(pairJK,systemConstants) * neighbor.particleVariables["mass"])\
+				            						  .dot(self.gW(pairIJ,systemConstants["interactionlen"]))
+				
+				# "l" Columns
+				for neighbor in particle.neighborList:
+					if neighbor.particleVariables["isBoundary"] is False:								
+						l = neighbor.pID
+						pairIL = pairsData[(particle,neighbor)]
+
+						systemConstants["aMatrix"][i,l] += self.calculate_dij(pairIL,systemConstants).dot(omega)
+
+
+
+
 
 
 	def getAlgoProcedure(self,t):
@@ -32,6 +91,8 @@ class IISPH_Algorithm :
 			return [self.initializeBoundaryParticleVariables] + self._proceduresInOrder
 		else: 
 			return self._proceduresInOrder
+
+
 
 	def initializeBoundaryParticleVariables(self,systemConstants, pairsData, particleSet):
 		for particle in particleSet:
