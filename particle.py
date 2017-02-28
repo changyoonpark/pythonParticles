@@ -26,12 +26,10 @@ class Particle:
 		s =  "---------------------------------------\n"
 		s += "Particle : {}\n".format(self.pID)
 		s += "position : {}\n".format(self.pos)
-		s += "velocity : {}\n".format(self.vel)
-		s += "acceler  : {}\n".format(self.acc)
-		s += "fext     : {}\n".format(self.fext)
 		s += "	>>> Particle Variable Dictionary <<<\n"
 		for key in self.particleVariables:
 			s += "{} : {}\n".format(key,self.particleVariables[key])
+		s += "Number of Neighbors : {}".format(len(self.neighborList))
 		return s
 
 class ParticleSystem:
@@ -65,6 +63,7 @@ class ParticleSystem:
 								   dict(particleInitData.particleVariables)
 								   )
 			newParticle.particleVariables["isBoundary"] = False
+			newParticle.particleVariables["pressure"] = newParticle.pos.x
 			self.particleSet.append(newParticle)
 			num += 1
 
@@ -115,11 +114,33 @@ class ParticleSystem:
 		return pointData
 
 	def getPressure(self):
-		pressureData = []
+		pData = []
+		pdat = []
+
+		pmax = -1
+		pmin = 9E20
+
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
-				pressureData.append(np.array([particle.particleVariables["pressure"]]))
-		return pressureData
+				if particle.particleVariables["pressure"] > pmax:
+					pmax = particle.particleVariables["pressure"]
+				if particle.particleVariables["pressure"] < pmin:
+					pmin = particle.particleVariables["pressure"]
+
+				pData.append(particle.particleVariables["pressure"])
+			else:
+				pData.append(None)
+
+
+		for p in pData:
+			if p is None : 
+				pdat.append((1,0,0))
+			else:
+				# pmin = pmin + 0.1;
+				# pdat.append((1-(p-pmin)/(pmax-pmin+0.01),1-(p-pmin)/(pmax-pmin+0.01),1-(p-pmin)/(pmax-pmin + 0.01)))
+				pdat.append((1,1,1))
+
+		return pdat
 
 	def getDensity(self):
 		densData = []
@@ -135,7 +156,11 @@ class ParticleSystem:
 				if particle.particleVariables["rho"] < dmin:
 					dmin = particle.particleVariables["rho"]
 
-				densData.append(particle.particleVariables["rho"])
+				if particle.particleVariables["pressure"] < 1E-9: 
+					densData.append(1)
+				else:
+					densData.append(0)
+
 			else:
 				densData.append(None)
 
@@ -143,8 +168,11 @@ class ParticleSystem:
 		for d in densData:
 			if d is None : 
 				ddat.append((1,0,0))
+			elif d is 0 : 
+				ddat.append((0.2,0.2,1.0))
 			else:
-				ddat.append((1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01)))
+				ddat.append((0.5,0.5,0.5))
+				# ddat.append((1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01),1-(d-dmin)/(dmax-dmin+0.01)))
 
 		return ddat
 
@@ -159,33 +187,37 @@ class ParticleSystem:
 		return [vecList1[i]+vecList2[i] for i in range(0,l)]
 
 	def update(self,t):
-		tic()
-		self.hash()
 
+		tic()
+
+		self.hash()
 		self.resetPairList()
 		self.constructContacts()	
 
 		self.solveTimeStep()
 
 		pdat = self.getPoints()
+		# ddat = self.getPressure()
 		ddat = self.getDensity()
 
 		print("time : {}".format(t))
+
 		toc()
 
 		# if self.tstep % 20 == 0 :
 			# plt.savefig("plots/"+str(self.tstep//20)+".png");
 			# print("Exporting Plot")
-		figg = plt.figure()
-		axx = figg.add_subplot(111)
-		axx.spy(self.systemConstants["aMatrix"])
-		print(self.systemConstants["aMatrix"].max())
-		plt.show()
+		# figg = plt.figure()
+		# axx = figg.add_subplot(111)
+		# axx.spy(self.systemConstants["aMatrix"])
+		# print(self.systemConstants["aMatrix"].max())
+		# plt.show()
 
 		self.tstep += 1
 		self.scat.set_offsets(pdat)
 		self.scat.set_color(ddat)
 		# if t == 100:
+
 
 	def solveTimeStep(self):
 		for operation in self.interactionAlgo.getAlgoProcedure(self.tstep):
@@ -195,14 +227,17 @@ class ParticleSystem:
 
 		pointData = self.getPoints()
 		densData = self.getDensity()
+		# densData = self.getPressure()
 
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
 		
 		self.scat = self.ax.scatter(xdat,ydat,c=densData,
-						s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
-		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
-		animation = FuncAnimation(self.fig,self.update,interval=1)
+						s=60*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+		# self.scat = self.ax.scatter(xdat,ydat,color='Black',
+		# 				s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+		# animation = FuncAnimation(self.fig,self.update,frames = 1,interval=999999,repeat=False)
+		animation = FuncAnimation(self.fig,self.update)
 
 		plt.show()
 
@@ -245,10 +280,12 @@ class ParticleSystem:
 
 				particle1.neighborList.append(particle2)
 				particle2.neighborList.append(particle1)
+
 				self.pairsData[(particle1,particle2)]  \
 				    = ParticlePair(particle1,particle2,relpos,relvel,dist,reldir)
 				self.pairsData[(particle2,particle1)]  \
 				    = ParticlePair(particle2,particle1,-relpos,-relvel,dist,-reldir)
+
 			return True
 		return False
 

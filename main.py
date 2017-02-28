@@ -4,13 +4,13 @@ from IISPH import IISPH_Algorithm
 import particleInit
 
 
-sysConsts = { "viscosity"       : 0.0 ,
+sysConsts = { "viscosity"       : 0.01,
               "rho0"            : 1000,
-              "interactionlen"  : 0.51,
+              "interactionlen"  : 0.77,
               "diameter"        : 0.25,
-              "gravity"         : 0,
-              "dt"              : 0.1,
-              "domain"          : (10,10),
+              "gravity"         : 10,
+              "dt"              : 0.005,
+              "domain"          : (20,20),
               "walls"           : (0.5,0.5),
 	        }
 
@@ -25,6 +25,11 @@ blockOfFluid = particleInit.ParticleInitData(
 	particleVariables =  pVars
 )	 				
 
+diskOfFluid = particleInit.ParticleDiskInitData(
+	systemConstants = sysConsts,
+	particleVariables = pVars
+)
+
 simpleWall = particleInit.BoundaryInitData(
 	systemConstants   =  sysConsts
 )
@@ -33,7 +38,8 @@ IISPH = IISPH_Algorithm(W_4,gW_4,lW_v,omega = 0.5)
 
 psys = ParticleSystem(
 	interactionAlgo      = IISPH,
-    particleInitData     = blockOfFluid,
+    particleInitData     = diskOfFluid,
     boundaryInitData     = simpleWall)
 print("Starting Simulation.")
 psys.run()      
+

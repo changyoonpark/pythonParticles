@@ -11,9 +11,10 @@ def W_4(pairDat,h):
 
 def gW_4(pairDat,h):
 	q = pairDat.dist / (h)
+	
 	if q >= 0 and q <= 0.5 :
 		return (1.8189136353359467 / (h**3)) * \
-			   (h - 12 * q + 18 * q**2) * pairDat.reldir
+			   (- 12 * q + 18 * q**2) * pairDat.reldir
 	elif q >= 0.5 and q <= 1 :
 		return (1.8189136353359467 / (h**3)) * \
 		       (-6 * (1 - q)**2) * pairDat.reldir
