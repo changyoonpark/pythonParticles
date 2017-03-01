@@ -1,9 +1,11 @@
 import cProfile
 import sys
 import numpy as np
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import scipy as sp
 from matplotlib.animation import FuncAnimation
+from matplotlib import gridspec
 from multiprocessing import Process, Queue
 from timer import *
 from kernels import *
@@ -24,15 +26,14 @@ class Particle:
 
 	def __str__(self):
 		s =  "---------------------------------------\n"
-		s += "Particle : {}\n".format(self.pID)
+		s += "Particle : {}\n".format(self.pID)		
 		s += "position : {}\n".format(self.pos)
 		s += "velocity : {}\n".format(self.vel)
-		s += "acceler  : {}\n".format(self.acc)
-		s += "fext     : {}\n".format(self.fext)
 		s += "	>>> Particle Variable Dictionary <<<\n"
 		for key in self.particleVariables:
 			s += "{} : {}\n".format(key,self.particleVariables[key])
 		return s
+
 
 class ParticleSystem:
 	def __init__ (self,interactionAlgo,		       
@@ -43,6 +44,7 @@ class ParticleSystem:
 		self.particleSet = []
 		self.dimLim = Vec2(None,None,tup = particleInitData.systemConstants["domain"])
 		self.scat = None
+		self.dPlot = None		
 		self.animation = None
 		self.hashData = []
 		self.tstep = 0
@@ -50,26 +52,38 @@ class ParticleSystem:
 
 
 		print("Initializing matplotlib")
-		self.fig = plt.figure(figsize=(7, 7))
-		self.ax = self.fig.add_axes([0, 0, 1, 1], frameon=True)
+
+		self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(8, 8),nrows = 2,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
+		# self.fig = plt.figure(1,)
+		# self.fig = plt.subplots(nrows = 2,ncols = 1)		
+		# self.ax = self.fig.add_subplot(gs[0])
+		# self.ax2 = self.fig.add_subplot(gs[0])
+
 		self.ax.set_xlim(0, self.dimLim.x)
 		self.ax.set_ylim(0, self.dimLim.y)
+		self.ax.set_aspect('equal')
+
+		# self.ax2 = self.fig2.add_axes([0, 0, 1, 1], frameon=True)		
 
 		print("Reading initial particle data")
 		num = 0
 		self.systemConstants = particleInitData.systemConstants			
 		posDat = particleInitData.posDat
 		velDat = particleInitData.velDat
+		print(len(posDat))
+		print(len(particleInitData.a_external))		
 		for idx in range(0,len(posDat)) :
 			newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
 								   dict(particleInitData.particleVariables)
 								   )
 			newParticle.particleVariables["isBoundary"] = False
+			newParticle.particleVariables["pressure"] = newParticle.pos.x
+			newParticle.particleVariables["a_external"] = particleInitData.a_external[idx]
 			self.particleSet.append(newParticle)
 			num += 1
 
-		print("Initializing Matrix")
 
+		print("Initializing Matrix")
 		self.systemConstants["aMatrix"] = np.zeros((len(self.particleSet),len(self.particleSet)),dtype = float)
 		self.systemConstants["pVector"] = np.zeros((len(self.particleSet),1),dtype = float)
 		self.systemConstants["bVector"] = np.zeros((len(self.particleSet),1),dtype = float)
@@ -84,6 +98,7 @@ class ParticleSystem:
 			newBoundaryParticle.vel = Vec2(0,0)
 			self.particleSet.append(newBoundaryParticle)
 			num += 1
+
 
 		print("Hashing Particle Data")
 		self.hashGridSize = self.systemConstants["interactionlen"] * 1.5
@@ -115,11 +130,37 @@ class ParticleSystem:
 		return pointData
 
 	def getPressure(self):
-		pressureData = []
+		pData = []
+		pdat = []
+
+		pmax = -1
+		pmin = 9E20
+
+		cmap = cm.get_cmap('rainbow')
+
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
-				pressureData.append(np.array([particle.particleVariables["pressure"]]))
-		return pressureData
+				if particle.particleVariables["pressure_est"] > pmax:
+					pmax = particle.particleVariables["pressure_est"]
+				if particle.particleVariables["pressure_est"] < pmin:
+					pmin = particle.particleVariables["pressure_est"]
+
+				pData.append(particle.particleVariables["pressure_est"])
+			else:
+				pData.append(None)
+
+
+		for p in pData:
+			if p is None : 
+				pdat.append((0.5,0.5,0.5))
+			else:
+				if p == 0:
+					pdat.append((0,0,0))
+				else:
+					normalize = ((p-pmin)/(pmax-pmin+0.001))
+					pdat.append(cmap(normalize))
+
+		return pdat
 
 	def getDensity(self):
 		densData = []
@@ -168,7 +209,8 @@ class ParticleSystem:
 		self.solveTimeStep()
 
 		pdat = self.getPoints()
-		ddat = self.getDensity()
+		ddat = self.getPressure()
+		# ddat = self.getDensity()
 
 		print("time : {}".format(t))
 		toc()
@@ -185,25 +227,39 @@ class ParticleSystem:
 		self.tstep += 1
 		self.scat.set_offsets(pdat)
 		self.scat.set_color(ddat)
-		# if t == 100:
+
+		self.ax2.set_xlim(-1,int(len(self.systemConstants["densityDeviation"])))
+		maxdev = 0
+		for dat in self.systemConstants["densityDeviation"]:
+			if maxdev < dat[1]:
+				maxdev = dat[1]   
+		self.ax2.set_ylim(0,maxdev*1.1)
+
+		plt.title('{} Iterations, Average Density Deviation {}'.format(len(self.systemConstants["densityDeviation"]),self.systemConstants["densityDeviation"][-1][1]))
+		self.densityDeviation.set_offsets(self.systemConstants["densityDeviation"])
+		plt.savefig('plots/disc1/pillar_{}.png'.format(self.tstep))
 
 	def solveTimeStep(self):
 		for operation in self.interactionAlgo.getAlgoProcedure(self.tstep):
-			operation(self.systemConstants,self.pairsData,self.particleSet)
+			operation(self.systemConstants,self.pairsData,self.particleSet,plot=self.densityDeviation)
 
 	def run(self):
 
 		pointData = self.getPoints()
-		densData = self.getDensity()
+		# densData = self.getDensity()
+		densData = self.getPressure()
 
 		xdat = np.array([p[0] for p in pointData])
 		ydat = np.array([p[1] for p in pointData])
-		
-		self.scat = self.ax.scatter(xdat,ydat,c=densData,
-						s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
-		# animation = FuncAnimation(fig,self.update,frames = 1,interval=1,repeat=False)
-		animation = FuncAnimation(self.fig,self.update,interval=1)
 
+		self.scat = self.ax.scatter(xdat,ydat,c=densData,
+						s=170*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+		self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
+
+		# self.scat = self.ax.scatter(xdat,ydat,color='Black',
+		# 				s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+		# animation = FuncAnimation(self.fig,self.update,frames = 1,interval=999999,repeat=False)
+		animation = FuncAnimation(self.fig,self.update)
 		plt.show()
 
 	def constructContacts(self):
