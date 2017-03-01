@@ -9,7 +9,7 @@ class IISPH_Algorithm :
 # particleSystem is the list of all the particles.
 # systemConstants stores the constants used in the simulation.
 # pairsData stores the pre-computed data regarding the neighbors.
-	def __init__(self,W,gW,lW,omega = 0.5):
+	def __init__(self,W,gW,lW,omega = 0.1):
 		# super().__init__(W,gW,lW)		
 		# These operations are done in order, for the particlesystem.
 		self.omega = omega
@@ -33,7 +33,7 @@ class IISPH_Algorithm :
 		 						   ]
 
 
-	def calcPressuregrad(self,systemConstants, pairsData, particleSet):
+	def calcPressuregrad(self,systemConstants, pairsData, particleSet, plot = None):
 
 
 		for particle in particleSet:
@@ -52,7 +52,7 @@ class IISPH_Algorithm :
 
 		print(particleSet[24])
 
-	def constructMatrix(self,systemConstants, pairsData, particleSet):
+	def constructMatrix(self,systemConstants, pairsData, particleSet, plot = None):
 
 		for particle in particleSet:
 
@@ -114,7 +114,7 @@ class IISPH_Algorithm :
 
 
 
-	def initializeBoundaryParticleVariables(self,systemConstants, pairsData, particleSet):
+	def initializeBoundaryParticleVariables(self,systemConstants, pairsData, particleSet, plot = None):
 		for particle in particleSet:
 
 			if particle.particleVariables["isBoundary"] is True:
@@ -130,7 +130,7 @@ class IISPH_Algorithm :
 
 
 
-	def calculateDensity(self,systemConstants,pairsData,particleSet):
+	def calculateDensity(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:
 			# Dont include boundary particles.
 			if particle.particleVariables["isBoundary"] is False: 
@@ -167,7 +167,7 @@ class IISPH_Algorithm :
 		# 					( self.gW(pairData,systemConstants["interactionlen"]) )
 
 
-	def calculate_dii(self,systemConstants,pairsData,particleSet):
+	def calculate_dii(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:
 		#   calculate dii
 			if particle.particleVariables["isBoundary"] is False: 
@@ -188,7 +188,7 @@ class IISPH_Algorithm :
 
 				particle.particleVariables["d_ii"] = particle.particleVariables["d_ii"] * systemConstants["dt"]**2
 
-	def calculate_sum_pj_dij(self,particle,systemConstants,pairsData):
+	def calculate_sum_pj_dij(self,particle,systemConstants,pairsData, plot = None):
 		if particle.particleVariables["isBoundary"] is False:
 
 			particle.particleVariables["sum_pj_dij"] = Vec2(0,0)
@@ -203,7 +203,7 @@ class IISPH_Algorithm :
 			   (pairData.particlej.particleVariables["rho"]**2)) * self.gW(pairData,systemConstants["interactionlen"])
 
 
-	def calculateAdvectionForce(self,systemConstants,pairsData,particleSet):
+	def calculateAdvectionForce(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:
 		#	calculate advection force (viscosity and gravity is applied.)
 			if particle.particleVariables["isBoundary"] is False:
@@ -225,13 +225,23 @@ class IISPH_Algorithm :
 				particle.particleVariables["f_adv"] += \
 					particle.particleVariables["mass"] * systemConstants["gravity"] * Vec2(0,-1)
 
-	def calculateAdvectionVel(self,systemConstants,pairsData,particleSet):
+			#   consider external forces, if any (mainly for testing). 
+				# print(type(particle.particleVariables["f_external"]))
+				# print(particle.particleVariables["f_external"])
+
+				particle.particleVariables["f_adv"] += \
+					particle.particleVariables["mass"] * particle.particleVariables["a_external"]
+
+		print(particleSet[1])
+
+
+	def calculateAdvectionVel(self,systemConstants,pairsData,particleSet, plot = None):
 	#   calculate itermediate velocity
 		for particle in particleSet:
 			if particle.particleVariables["isBoundary"] is False:
 				particle.vel += systemConstants["dt"] * particle.particleVariables["f_adv"] / particle.particleVariables["mass"]
 
-	def calculateAdvectionDensity(self,systemConstants,pairsData,particleSet):
+	def calculateAdvectionDensity(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:
 		#   calculate advection density
 			if particle.particleVariables["isBoundary"] is False:
@@ -254,7 +264,7 @@ class IISPH_Algorithm :
 							v_adv_ij.dot(self.gW(pairData,systemConstants["interactionlen"]))
 
 
-	def calculate_aii(self,systemConstants,pairsData,particleSet):
+	def calculate_aii(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:	
 			if particle.particleVariables["isBoundary"] is False:
 			# 	calculate a_ii for relaxed jacobi
@@ -357,17 +367,19 @@ class IISPH_Algorithm :
 
 
 
-	def pressureSolver(self,systemConstants,pairsData,particleSet):
+	def pressureSolver(self,systemConstants,pairsData,particleSet, plot):
 	# 	iteration counter
 		l = 0
 		#   initialize pressure estimate.
 		for particle in particleSet:
 			if particle.particleVariables["isBoundary"] is False:
-				particle.particleVariables["pressure"] = 0.4 * particle.particleVariables["pressure"]
+				particle.particleVariables["pressure"] = 0.5 * particle.particleVariables["pressure"]
 
 		densityDeviation = 1
-		foo = 0
-		while ( (densityDeviation > 0.001 and l < 100)):
+		foo = 0		
+	
+		systemConstants["densityDeviation"] = []
+		while ( (densityDeviation > 0.0001 and l < 100)):
 			# if (abs(foo - densityDeviation) < 1E-6):
 			# 	break
 
@@ -387,11 +399,16 @@ class IISPH_Algorithm :
 				if particle.particleVariables["isBoundary"] is False:
 					particle.particleVariables["pressure"] = particle.particleVariables["pressure_est"]
 
+
 			foo = densityDeviation
 			densityDeviation = abs((self.calcAverageDensity(particleSet) - systemConstants["rho0"])/systemConstants["rho0"])
-			print("Performing Jacobi iteration for pressure field. Iteration : {} / Average Density Deviation : {}".format(l,densityDeviation))
+			print("Performing Jacobi iteration for pressure field. Iteration : {} / Average Density Deviation : {}".format(l,densityDeviation * 100))
+			systemConstants["densityDeviation"].append([l,densityDeviation * 100])
 			l += 1
 
+			# print(plot)			
+			# plot.set_offsets(systemConstants["densityDeviation"])
+			# plot.draw()
 		# for particle in particleSet:
 		# 	if particle.particleVariables["isBoundary"] is False and particle.pID == 24:
 		# 		print(particle)
@@ -399,7 +416,6 @@ class IISPH_Algorithm :
 		# 		for neighbor in particle.neighborList:
 		# 			if neighbor.particleVariables["isBoundary"] is True :
 		# 				print("boundary particle {}, psi : {}.".format(neighbor.pID,neighbor.particleVariables["psi"]))
-
 
 
 					
@@ -449,7 +465,7 @@ class IISPH_Algorithm :
 
 
 
-	def integration(self,systemConstants,pairsData,particleSet):
+	def integration(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:
 			self.calculatePressureForce(particle,pairsData,systemConstants)
 
