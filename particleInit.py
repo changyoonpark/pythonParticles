@@ -52,7 +52,7 @@ class ParticleInitData:
 		for i in range(0,10):
 			for j in range(0,15):
 
-				self.posDat.append(Vec2(1.5 + 1.125+d+d*i,
+				self.posDat.append(Vec2(1.5 + 1.0 +d+d*i,
 					  					1.02+d+d*j))
 
 				self.velDat.append(Vec2( 0 ,

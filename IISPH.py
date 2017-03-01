@@ -148,6 +148,8 @@ class IISPH_Algorithm :
 						particle.particleVariables["rho"] += \
 							neighbor.particleVariables["psi"] * self.W(pairData,systemConstants["interactionlen"])
 
+
+				print(particle.particleVariables["rho"])
 				# particle.particleVariables["rho"] = max(particle.particleVariables["rho"], systemConstants["rho0"])
 
 		# for particle in particleSet:

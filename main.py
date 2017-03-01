@@ -9,7 +9,7 @@ sysConsts = { "viscosity"       : 0.01,
               "interactionlen"  : 0.52,
               "diameter"        : 0.25,
               "gravity"         : 10,
-              "dt"              : 0.0001,
+              "dt"              : 0.001,
               "domain"          : (8,8),
               "walls"           : (0.5,0.5),
               "densityDeviation": [[0,1]],
@@ -39,7 +39,7 @@ IISPH = IISPH_Algorithm(W_4,gW_4,lW_v,omega = 0.5)
 
 psys = ParticleSystem(
 	interactionAlgo      = IISPH,
-    particleInitData     = diskOfFluid,
+    particleInitData     = blockOfFluid,
     boundaryInitData     = simpleWall)
 print("Starting Simulation.")
 psys.run()      
