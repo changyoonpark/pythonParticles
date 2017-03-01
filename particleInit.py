@@ -1,5 +1,6 @@
 from helpers import *
 import numpy as np
+from math import cos,sin
 
 class ParticleDiskInitData:
 	def __init__ (self,
@@ -15,7 +16,7 @@ class ParticleDiskInitData:
 		self.velDat = []
 		self.a_external = []
 
-		nr = 10
+		nr = 2
 		pi = 3.141592
 		c = Vec2(4,4)
 		gr = 1000
@@ -72,16 +73,20 @@ class BoundaryInitData:
 
 		self.wallParticleDiameter = (systemConstants["domain"][0]-2) / numX
 
-		# for i in range(0,numX):
-		# 	self.posDat.append(Vec2(1.5 + padding - d + i * d, padding    ))
+		for i in range(0,numX):
+			self.posDat.append(Vec2(1.5 + padding - d + i * d, padding    ))
 
-		# for i in range(0,numX):
-		# 	self.posDat.append(Vec2(1.5 + padding - d + i * d, padding - d))
+		for i in range(0,numX ):
+			self.posDat.append(Vec2(1.5 + padding - 1.5 * d + i * d, padding - sqrt(3)/2 * d))
 
-		# for j in range(0,numY-5):
-		# 	self.posDat.append(Vec2(1.5 + padding - d, padding + d + j * d ))
-		# 	self.posDat.append(Vec2(1.5 + padding    , padding + d + j * d ))
-		# 	self.posDat.append(Vec2(1.5 + systemConstants["domain"][0] - 3 - padding    , padding + d + j * d ))
-		# 	self.posDat.append(Vec2(1.5 + systemConstants["domain"][0] - 3 - padding + d, padding + d + j * d ))
-		# 	# self.posDat.append(Vec2(4.5 - padding    , padding + d + j * d ))
-		# 	# self.posDat.append(Vec2(4.5 - padding + d, padding + d + j * d ))
+		for j in range(0,numY-5):
+			self.posDat.append(Vec2(1.5 + padding - 2 * d, padding + j * d))
+
+		for j in range(0,numY-5):
+			self.posDat.append(Vec2(1.5 + padding - 2 * d - sqrt(3)/2 * d, padding + j * d + 0.5 * d))
+
+		for j in range(0,numY-5):
+			self.posDat.append(Vec2(numX * d + 1.5 + padding - 2 * d, padding + j * d + 1 * d))
+			
+		for j in range(0,numY-5):
+			self.posDat.append(Vec2(numX * d + 1.5 + padding - 2 * d + sqrt(3)/2 * d, padding + j * d + .5 * d))
