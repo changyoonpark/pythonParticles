@@ -44,21 +44,20 @@ class ParticleInitData:
 		self.systemConstants = systemConstants
 		self.particleVariables = particleVariables
 
-		d = self.systemConstants["diameter"]
+		padding = 1
+		d = systemConstants["diameter"]
+		maxx = systemConstants["domain"][0]
+		maxy = systemConstants["domain"][1]
 		
-		self.posDat = []
+		(self.posDat,pmass) = generateBlock(Vec2(padding,padding+d),Vec2(maxx-padding,maxy-padding - 2 * d),d)
 		self.velDat = []
 		self.a_external = []
-		for i in range(0,10):
-			for j in range(0,15):
 
-				self.posDat.append(Vec2(1.5 + 1.0 +d+d*i,
-					  					1.02+d+d*j))
+		for _ in self.posDat:
+			self.velDat.append(Vec2(0,0))
+			self.a_external.append(Vec2(0,0))
 
-				self.velDat.append(Vec2( 0 ,
-					  					 0 ))
-
-				self.a_external.append(Vec2(0,0))
+		particleVariables["mass"] = pmass
 
 class BoundaryInitData:
 
@@ -67,26 +66,85 @@ class BoundaryInitData:
 		self.posDat = []
 		padding = 1
 		d = systemConstants["diameter"]
+		maxx = systemConstants["domain"][0]
+		maxy = systemConstants["domain"][1]
 
-		numX = int((systemConstants["domain"][0] - 3 - padding *  2) / systemConstants["diameter"]) + 1 + 2
-		numY = int((systemConstants["domain"][1] - padding *  2) / systemConstants["diameter"])
 
-		self.wallParticleDiameter = (systemConstants["domain"][0]-2) / numX
+		self.posDat += generateWall(Vec2(padding - d,padding), Vec2(maxx-padding + d,padding),d,2)
+		self.posDat += generateWall(Vec2(maxx-padding,padding + d),Vec2(maxx-padding ,maxy-padding - d),d,2)
+		# self.posDat += generateWall(Vec2(maxx-padding-d,maxy-padding-2*d),Vec2(padding - d,maxy-padding-2*d),d,2)
+		self.posDat += generateWall(Vec2(padding - d,maxy-padding-d -d ), Vec2(padding - d,padding),d,2)
 
-		for i in range(0,numX):
-			self.posDat.append(Vec2(1.5 + padding - d + i * d, padding    ))
+		for v in self.posDat:
+			print(v)
 
-		for i in range(0,numX ):
-			self.posDat.append(Vec2(1.5 + padding - 1.5 * d + i * d, padding - sqrt(3)/2 * d))
 
-		for j in range(0,numY-5):
-			self.posDat.append(Vec2(1.5 + padding - 2 * d, padding + j * d))
 
-		for j in range(0,numY-5):
-			self.posDat.append(Vec2(1.5 + padding - 2 * d - sqrt(3)/2 * d, padding + j * d + 0.5 * d))
+def generateWall(startCoord,endCoord,d,layers):
 
-		for j in range(0,numY-5):
-			self.posDat.append(Vec2(numX * d + 1.5 + padding - 2 * d, padding + j * d + 1 * d))
-			
-		for j in range(0,numY-5):
-			self.posDat.append(Vec2(numX * d + 1.5 + padding - 2 * d + sqrt(3)/2 * d, padding + j * d + .5 * d))
+	pos = []
+
+	num = int((endCoord-startCoord).length() / d + 0.5) + 1
+	stencil = (endCoord-startCoord) / num
+	sdir = stencil.dir()
+
+	s = sqrt(3)/2
+	offset = Vec2(0,0)
+	Pi = 3.141592
+
+	rotmat = [[cos(-Pi/2),-sin(-Pi/2)],[sin(-Pi/2),cos(-Pi/2)]]
+
+
+	snormaldir = Vec2(rotmat[0][0] * sdir.dir().x + rotmat[0][1] * sdir.dir().y,
+			    	  rotmat[1][0] * sdir.dir().x + rotmat[1][1] * sdir.dir().y)
+	
+	offset = 0.5 * sdir * stencil.length() + s * snormaldir * stencil.length()
+	# doOffset = false
+	for i in range(0,num):
+		pos.append(startCoord + stencil * i)
+
+	for i in range(0,num - 1):
+		pos.append(startCoord +  offset + stencil * i)
+
+	return pos
+
+def generateBlock(leftBottom,rightTop,d):
+
+	pos = []
+	nx = int((rightTop - leftBottom).x / (d))
+	ny = int((rightTop - leftBottom).y / (d))
+
+	# for i in range(0,nx):
+	# 	for j in range(0,ny,2):
+	# 		pos.append(leftBottom + Vec2( d * i * sqrt(3) / 2, d * j ))
+
+	maxx = 0
+	maxy = 0
+
+	for i in range(0,nx):
+		for j in range(0,ny,2):
+			pos.append(leftBottom +
+					   Vec2(d*i,d*sqrt(3)/2*j))
+
+			if maxx < pos[-1].x :
+				maxx = pos[-1].x 
+
+			if maxy < pos[-1].y :
+				maxy = pos[-1].y 
+
+	for i in range(0,nx-1):
+		for j in range(0,ny,2):
+			pos.append(leftBottom +
+					   Vec2(d*i,d*sqrt(3)/2*j) + 
+					   Vec2(0.5,sqrt(3)/2)*d )
+
+			if maxx < pos[-1].x :
+				maxx = pos[-1].x 
+
+			if maxy < pos[-1].y :
+				maxy = pos[-1].y 
+
+	particleMass = 1.022 ** 2 * ( maxx - leftBottom.x ) * ( maxy - leftBottom.y ) / len(pos) * 1000
+	
+
+	return (pos,particleMass)

@@ -30,7 +30,26 @@ class IISPH_Algorithm :
 			  						   # self.calcPressuregrad,			  						   
 			  						   self.pressureSolver,
 			  						   self.integration,
+			  						   # self.calcVelocityLaplacian,
 		 						   ]
+
+
+	def calcVelocityLaplacian(self,systemConstants, pairsData, particleSet, plot = None):
+		for particle in particleSet:
+			particle.particleVariables["vel_div"] = 0;
+			particle.particleVariables["vel_lap"] = Vec2(0,0)
+
+			if particle.particleVariables["isBoundary"] is False: 
+				for neighbor in particle.neighborList:
+					if neighbor.particleVariables["isBoundary"] is False and particle is not neighbor:
+						pairData = pairsData[(particle,neighbor)]
+						particle.particleVariables["vel_div"] -= (neighbor.particleVariables["mass"] / neighbor.particleVariables["rho"]) * pairData.relvel.dot(self.gW(pairData,systemConstants["interactionlen"]))
+
+						particle.particleVariables["vel_lap"] += \
+							( 8.0 ) * \
+							( neighbor.particleVariables["mass"] / neighbor.particleVariables["rho"] ) * \
+							( pairData.relvel.dot(pairData.relpos) / pairData.relpos.dot(pairData.relpos) ) * \
+							( self.gW(pairData,systemConstants["interactionlen"]) )
 
 
 	def calcPressuregrad(self,systemConstants, pairsData, particleSet, plot = None):
@@ -50,7 +69,6 @@ class IISPH_Algorithm :
 							 neighbor.particleVariables["pressure"] / (neighbor.particleVariables["rho"] ** 2) ) * \
 							 self.gW(pairData,systemConstants["interactionlen"])
 
-		print(particleSet[24])
 
 	def constructMatrix(self,systemConstants, pairsData, particleSet, plot = None):
 
@@ -152,22 +170,6 @@ class IISPH_Algorithm :
 				print(particle.particleVariables["rho"])
 				# particle.particleVariables["rho"] = max(particle.particleVariables["rho"], systemConstants["rho0"])
 
-		# for particle in particleSet:
-		# 	particle.particleVariables["vel_div"] = 0;
-		# 	particle.particleVariables["vel_lap"] = Vec2(0,0)
-
-		# 	if particle.particleVariables["isBoundary"] is False: 
-		# 		for neighbor in particle.neighborList:
-		# 			if neighbor.particleVariables["isBoundary"] is False and particle is not neighbor:
-		# 				pairData = pairsData[(particle,neighbor)]
-		# 				particle.particleVariables["vel_div"] -= (neighbor.particleVariables["mass"] / neighbor.particleVariables["rho"]) * pairData.relvel.dot(self.gW(pairData,systemConstants["interactionlen"]))
-
-		# 				particle.particleVariables["vel_lap"] += \
-		# 					( 8.0 ) * \
-		# 					( neighbor.particleVariables["mass"] / neighbor.particleVariables["rho"] ) * \
-		# 					( pairData.relvel.dot(pairData.relpos) / pairData.relpos.dot(pairData.relpos) ) * \
-		# 					( self.gW(pairData,systemConstants["interactionlen"]) )
-
 
 	def calculate_dii(self,systemConstants,pairsData,particleSet, plot = None):
 		for particle in particleSet:
@@ -218,6 +220,7 @@ class IISPH_Algorithm :
 
 					if neighbor.particleVariables["isBoundary"] is False and neighbor is not particle:						
 						particle.particleVariables["f_adv"] += \
+							( particle.particleVariables["mass"] ) * \
 							( 8.0 * systemConstants["viscosity"] / particle.particleVariables["rho"] ) * \
 							( neighbor.particleVariables["mass"] / neighbor.particleVariables["rho"] ) * \
 							( pairData.relvel.dot(pairData.relpos) / pairData.relpos.dot(pairData.relpos) ) * \
@@ -234,7 +237,6 @@ class IISPH_Algorithm :
 				particle.particleVariables["f_adv"] += \
 					particle.particleVariables["mass"] * particle.particleVariables["a_external"]
 
-		print(particleSet[1])
 
 
 	def calculateAdvectionVel(self,systemConstants,pairsData,particleSet, plot = None):
@@ -382,8 +384,8 @@ class IISPH_Algorithm :
 	
 		systemConstants["densityDeviation"] = []
 		while ( (densityDeviation > 0.0001 and l < 100)):
-			# if (abs(foo - densityDeviation) < 1E-6):
-			# 	break
+			if (abs(foo - densityDeviation) < 1E-6):
+				break
 
 			for particle in particleSet:
 				self.calculate_sum_pj_dij(particle,systemConstants,pairsData)
@@ -473,16 +475,8 @@ class IISPH_Algorithm :
 
 		for particle in particleSet:
 			if particle.particleVariables["isBoundary"] is False:
+				# particle.vel = Vec2(0.5 * particle.pos.y ** 2,0)
 				particle.vel += particle.particleVariables["f_p"] / particle.particleVariables["mass"] * systemConstants["dt"]
 				particle.pos += systemConstants["dt"] * particle.vel
-
-
-
-
-
-
-
-
-
 
 

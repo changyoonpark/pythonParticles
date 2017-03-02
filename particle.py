@@ -29,6 +29,7 @@ class Particle:
 		s += "Particle : {}\n".format(self.pID)		
 		s += "position : {}\n".format(self.pos)
 		s += "velocity : {}\n".format(self.vel)
+		s += "accelera : {}\n".format(self.particleVariables["f_p"] /  self.particleVariables["mass"])
 		s += "	>>> Particle Variable Dictionary <<<\n"
 		for key in self.particleVariables:
 			s += "{} : {}\n".format(key,self.particleVariables[key])
@@ -53,7 +54,7 @@ class ParticleSystem:
 
 		print("Initializing matplotlib")
 
-		self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(8, 8),nrows = 2,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
+		self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(8, 30),nrows = 2,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
 		# self.fig = plt.figure(1,)
 		# self.fig = plt.subplots(nrows = 2,ncols = 1)		
 		# self.ax = self.fig.add_subplot(gs[0])
@@ -253,7 +254,7 @@ class ParticleSystem:
 		ydat = np.array([p[1] for p in pointData])
 
 		self.scat = self.ax.scatter(xdat,ydat,c=densData,
-						s=170*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+						s=80*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
 		self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
 
 		# self.scat = self.ax.scatter(xdat,ydat,color='Black',

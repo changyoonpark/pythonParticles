@@ -4,18 +4,18 @@ from IISPH import IISPH_Algorithm
 import particleInit
 
 
-sysConsts = { "viscosity"       : 0.01,
+sysConsts = { "viscosity"       : 0.1,
               "rho0"            : 1000,
-              "interactionlen"  : 0.52,
+              "interactionlen"  : 0.55,
               "diameter"        : 0.25,
               "gravity"         : 10,
-              "dt"              : 0.001,
-              "domain"          : (8,8),
+              "dt"              : 0.003,
+              "domain"          : (5,15),
               "walls"           : (0.5,0.5),
               "densityDeviation": [[0,1]],
 	        }
 
-pVars = {     "mass"            : 0.0625 * 1000,
+pVars = {     
               "rho"             : 1000,
 			  "pressure"        : 0,
 			  "pressure_est"    : 0}
