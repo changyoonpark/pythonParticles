@@ -40,12 +40,12 @@ class Node:
 
 	def W(self,particlePos):
 		q = (particlePos - self.nodePos) / self.h
-		return N( q.x ) * N( q.y )
+		return self.N( q.x ) * self.N( q.y )
 
 	def gW(self,particlePos):
 		q = (particlePos - self.nodePos) / self.h
-		return Vec2(Nx(q.x) * N (q.x),
-					N (q.y) * Nx(q.y))
+		return Vec2(self.Nx(q.x) * self.N (q.x),
+					self.N (q.y) * self.Nx(q.y))
 
 	def N(self,x):
 		abx = abs(x)
@@ -84,9 +84,10 @@ class Grid:
 		for x in range(0,self.nx):
 			for y in range(0,self.ny):
 				nodePos = Vec2(x * self.h, y * self.h);
+				print("adding node at : {}".format(self.hashFunction(nodePos)))
 				self.nodes[self.hashFunction(nodePos)] = Node(nodePos, h);
 
-	def hashFunction(pos):
+	def hashFunction(self,pos):
 		return (int(pos.x / self.h),int(pos.y / self.h))
 
 	
