@@ -126,199 +126,197 @@ const unsigned int numParticles = m_model->numParticles();
 
 
 
-const Real h = TimeManager::getCurrent()->getTimeStepSize();
+	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
 
 
-// Predict v_adv
+	// Predict v_adv
 
-#pragma omp parallel default(shared)
+	#pragma omp parallel default(shared)
 
-{
+	{
 
-#pragma omp for schedule(static)  
+	#pragma omp for schedule(static)  
 
-for (int i = 0; i < (int)numParticles; i++)
+	for (int i = 0; i < (int)numParticles; i++)
 
-{
+	{
 
-Vector3r &vel = m_model->getVelocity(0, i);
+		Vector3r &vel = m_model->getVelocity(0, i);
 
-const Vector3r &accel = m_model->getAcceleration(i);
+		const Vector3r &accel = m_model->getAcceleration(i);
 
-Vector3r &dii = m_simulationData.getDii(i);
+		Vector3r &dii = m_simulationData.getDii(i);
 
 
 
-vel += h * accel;
+		vel += h * accel;
 
+		// Compute d_ii
 
+		dii.setZero();
 
-// Compute d_ii
+		const Real density2 = m_model->getDensity(i)*m_model->getDensity(i);
 
-dii.setZero();
+		const Vector3r &xi = m_model->getPosition(0, i);
 
-const Real density2 = m_model->getDensity(i)*m_model->getDensity(i);
+		for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
 
-const Vector3r &xi = m_model->getPosition(0, i);
+		{
 
-for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+			const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
 
-{
+			const unsigned int &neighborIndex = particleId.point_id;
 
-const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
+			const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
-const unsigned int &neighborIndex = particleId.point_id;
 
-const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
+			if (particleId.point_set_id == 0)	// Test if fluid particle
 
+			{
 
-if (particleId.point_set_id == 0)	// Test if fluid particle
+				dii -= m_model->getMass(neighborIndex) / density2 * m_model->gradW(xi - xj);
 
-{
+			}
 
-dii -= m_model->getMass(neighborIndex) / density2 * m_model->gradW(xi - xj);
+			else
 
-}
+			{
 
-else
+				dii -= m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) / density2 * m_model->gradW(xi - xj);
 
-{
+			}
 
-dii -= m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) / density2 * m_model->gradW(xi - xj);
+		}
 
-}
+	}
 
-}
+	}
 
-}
 
-}
 
+	// Compute rho_adv
 
+	#pragma omp parallel default(shared)
 
-// Compute rho_adv
+	{
 
-#pragma omp parallel default(shared)
+	#pragma omp for schedule(static)  
 
-{
+	for (int i = 0; i < (int)numParticles; i++)
 
-#pragma omp for schedule(static)  
+	{
 
-for (int i = 0; i < (int)numParticles; i++)
+		const Real &density = m_model->getDensity(i);
 
-{
+		Real &densityAdv = m_simulationData.getDensityAdv(i);
 
-const Real &density = m_model->getDensity(i);
+		densityAdv = density;
 
-Real &densityAdv = m_simulationData.getDensityAdv(i);
+		const Vector3r &xi = m_model->getPosition(0, i);
 
-densityAdv = density;
+		const Vector3r &vi = m_model->getVelocity(0, i);
 
-const Vector3r &xi = m_model->getPosition(0, i);
+		for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
 
-const Vector3r &vi = m_model->getVelocity(0, i);
+		{
 
-for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+			const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
 
-{
+			const unsigned int &neighborIndex = particleId.point_id;
 
-const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
+			const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
-const unsigned int &neighborIndex = particleId.point_id;
+			const Vector3r &vj = m_model->getVelocity(particleId.point_set_id, neighborIndex);
 
-const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
-const Vector3r &vj = m_model->getVelocity(particleId.point_set_id, neighborIndex);
 
+			if (particleId.point_set_id == 0)	// Test if fluid particle
 
+			{
 
-if (particleId.point_set_id == 0)	// Test if fluid particle
+				densityAdv += h*m_model->getMass(neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
 
-{
+			}
 
-densityAdv += h*m_model->getMass(neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
+			else
 
-}
+			{
 
-else
+				densityAdv += h*m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
 
-{
+			}
 
-densityAdv += h*m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
+	}
 
-}
 
-}
 
+	const Real &pressure = m_simulationData.getPressure(i);
 
+	Real &lastPressure = m_simulationData.getLastPressure(i);
 
-const Real &pressure = m_simulationData.getPressure(i);
+	lastPressure = 0.5*pressure;
 
-Real &lastPressure = m_simulationData.getLastPressure(i);
 
-lastPressure = 0.5*pressure;
 
+	// Compute a_ii
 
+	Real &aii = m_simulationData.getAii(i);
 
-// Compute a_ii
+	aii = 0.0;
 
-Real &aii = m_simulationData.getAii(i);
+	const Vector3r &dii = m_simulationData.getDii(i);
 
-aii = 0.0;
 
-const Vector3r &dii = m_simulationData.getDii(i);
 
+	const Real dpi = m_model->getMass(i) / (density*density);
 
+	for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
 
-const Real dpi = m_model->getMass(i) / (density*density);
+	{
 
-for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+		const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
 
-{
+		const unsigned int &neighborIndex = particleId.point_id;
 
-const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
+		const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
-const unsigned int &neighborIndex = particleId.point_id;
 
-const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
+		if (particleId.point_set_id == 0)	// Test if fluid particle
 
+		{
 
-if (particleId.point_set_id == 0)	// Test if fluid particle
+			// Compute d_ji
 
-{
+			const Vector3r kernel = m_model->gradW(xi - xj);
 
-// Compute d_ji
+			const Vector3r dji = dpi * kernel;
 
-const Vector3r kernel = m_model->gradW(xi - xj);
 
-const Vector3r dji = dpi * kernel;
 
+			aii += m_model->getMass(neighborIndex) * (dii - dji).dot(kernel);
 
+		}
 
-aii += m_model->getMass(neighborIndex) * (dii - dji).dot(kernel);
+		else
 
-}
+		{
 
-else
+			const Vector3r kernel = m_model->gradW(xi - xj);
 
-{
+			const Vector3r dji = dpi * kernel;
 
-const Vector3r kernel = m_model->gradW(xi - xj);
+			aii += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (dii - dji).dot(kernel);
 
-const Vector3r dji = dpi * kernel;
+		}
 
-aii += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (dii - dji).dot(kernel);
+	}
 
-}
+	}
 
-}
-
-}
-
-}
+	}
 
 }
 
@@ -529,26 +527,26 @@ void TimeStepIISPH::pressureSolve()
 
 
 
-	for (int i = 0; i < (int)numParticles; i++)
+		for (int i = 0; i < (int)numParticles; i++)
 
-	{
+		{
 
-	const Real &pi = m_simulationData.getPressure(i);
+			const Real &pi = m_simulationData.getPressure(i);
 
-	Real &lastPi = m_simulationData.getLastPressure(i);
+			Real &lastPi = m_simulationData.getLastPressure(i);
 
-	lastPi = pi;
+			lastPi = pi;
 
-	}
-
-
-	avg_density /= numParticles;
+			}
 
 
+			avg_density /= numParticles;
 
-	m_iterations++;
 
-	}
+
+			m_iterations++;
+
+		}
 
 }
 
@@ -602,31 +600,31 @@ void TimeStepIISPH::computePressureAccels()
 
 {
 
-const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numParticles();
 
 
 
-// Compute pressure forces
+	// Compute pressure forces
 
-#pragma omp parallel default(shared)
+	#pragma omp parallel default(shared)
 
-{
+	{
 
-#pragma omp for schedule(static)  
+	#pragma omp for schedule(static)  
 
-for (int i = 0; i < (int)numParticles; i++)
+	for (int i = 0; i < (int)numParticles; i++)
 
-{
+	{
 
-const Vector3r &xi = m_model->getPosition(0, i);
+	const Vector3r &xi = m_model->getPosition(0, i);
 
-const Real &density_i = m_model->getDensity(i);
+	const Real &density_i = m_model->getDensity(i);
 
 
 
-Vector3r &ai = m_simulationData.getPressureAccel(i);
+	Vector3r &ai = m_simulationData.getPressureAccel(i);
 
-ai.setZero();
+	ai.setZero();
 
 
 

@@ -71,15 +71,16 @@ class ParticleSystem:
 		self.systemConstants = particleInitData.systemConstants			
 		posDat = particleInitData.posDat
 		velDat = particleInitData.velDat
-		print(len(posDat))
-		print(len(particleInitData.a_external))		
+
+
 		for idx in range(0,len(posDat)) :
 			newParticle = Particle(num,posDat[idx],velDat[idx],Vec2(0,0),
 								   dict(particleInitData.particleVariables)
 								   )
 			newParticle.particleVariables["isBoundary"] = False
-			newParticle.particleVariables["pressure"] = newParticle.pos.x
+			# newParticle.particleVariables["pressure"] = newParticle.pos.x
 			newParticle.particleVariables["a_external"] = particleInitData.a_external[idx]
+			# newParticle.particleVariables["a_external"] = Vec2(0,0)
 			self.particleSet.append(newParticle)
 			num += 1
 
@@ -106,23 +107,24 @@ class ParticleSystem:
 		self.gridLim = (int(self.dimLim.x // self.hashGridSize) + 1,
 			            int(self.dimLim.y // self.hashGridSize) + 1)
 		gridNum = self.gridLim[0] * self.gridLim[1] // 4
+
 		for i in range(0,self.gridLim[0]):
 			self.hashData.append([])
 			for j in range(0,self.gridLim[1]):
 				self.hashData[-1].append([])
-		self.gridList = [[],[],[],[]]
+		# self.gridList = [[],[],[],[]]
 		self.gridListAll = []
 		self.pairsData = dict()
 
-		foo = 0
+		# foo = 0
 		for gridX in range(0,self.gridLim[0]):
 			for gridY in range(0,self.gridLim[1]):
-				self.gridList[foo].append((gridX,gridY))
+				# self.gridList[foo].append((gridX,gridY))
 				self.gridListAll.append((gridX,gridY))
-				if len(self.gridList[foo]) % gridNum == 0 :
-					foo += 1
-					if foo > 3:
-						foo = 3
+				# if len(self.gridList[foo]) % gridNum == 0 :
+					# foo += 1
+					# if foo > 3:
+						# foo = 3
 
 	def getPoints(self):
 		pointData = []
@@ -141,12 +143,12 @@ class ParticleSystem:
 
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
-				if particle.particleVariables["pressure_est"] > pmax:
-					pmax = particle.particleVariables["pressure_est"]
-				if particle.particleVariables["pressure_est"] < pmin:
-					pmin = particle.particleVariables["pressure_est"]
+				if particle.particleVariables["pressure"] > pmax:
+					pmax = particle.particleVariables["pressure"]
+				if particle.particleVariables["pressure"] < pmin:
+					pmin = particle.particleVariables["pressure"]
 
-				pData.append(particle.particleVariables["pressure_est"])
+				pData.append(particle.particleVariables["pressure"])
 			else:
 				pData.append(None)
 
@@ -238,11 +240,11 @@ class ParticleSystem:
 
 		plt.title('{} Iterations, Average Density Deviation {}'.format(len(self.systemConstants["densityDeviation"]),self.systemConstants["densityDeviation"][-1][1]))
 		self.densityDeviation.set_offsets(self.systemConstants["densityDeviation"])
-		plt.savefig('plots/disc1/pillar_{}.png'.format(self.tstep))
+		plt.savefig('plots/rotdisc/rotdisc_{}.png'.format(self.tstep))
 
 	def solveTimeStep(self):
 		for operation in self.interactionAlgo.getAlgoProcedure(self.tstep):
-			operation(self.systemConstants,self.pairsData,self.particleSet,plot=self.densityDeviation)
+			operation(self.systemConstants,self.pairsData,self.particleSet)
 
 	def run(self):
 
@@ -254,7 +256,7 @@ class ParticleSystem:
 		ydat = np.array([p[1] for p in pointData])
 
 		self.scat = self.ax.scatter(xdat,ydat,c=densData,
-						s=80*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+						s=36*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
 		self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
 
 		# self.scat = self.ax.scatter(xdat,ydat,color='Black',
@@ -267,12 +269,15 @@ class ParticleSystem:
 		self.wipeNeighborList()
 		for gridPair in self.gridListAll:
 			(gridX,gridY) = gridPair
+
 			for i in [-1,0,1]:
 				for j in [-1,0,1]:
+
 					if gridX + i < 0 or gridY + j < 0:
 						continue
 					if gridX + i >= self.gridLim[0] or gridY + j >= self.gridLim[1]:
 						continue
+
 					self.collideCells((gridX,gridY),(gridX+i,gridY+j))
 
 		# for particle in self.particleSet:

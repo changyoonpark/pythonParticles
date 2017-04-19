@@ -9,3 +9,6 @@ def stupidSpring(systemConstants,pairsData,particle):
 			particle.fext = particle.fext - 300 * \
 				pow(pairData.dist - il,1) * pairData.reldir
 			particle.fext = particle.fext - 0.5 * pairData.relvel
+
+
+

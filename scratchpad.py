@@ -1,1 +1,3 @@
-print([n for n in range(0,10,2)])
+foo = {"a":1,"b":3}
+for a in foo:
+	print(foo[a])
