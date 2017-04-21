@@ -19,7 +19,7 @@ sysConsts = { "viscosity"       : 0.01,
 pVars = {     
         "rho"             : 1000,
 			  "pressure"        : 0,
-			  "pressure_est"    : 0}self.hashFunction(nodePos)
+			  "pressure_est"    : 0}
 
 ######### Initializes the "particles" #########
 blockOfFluid = particleInit.ParticleInitData(

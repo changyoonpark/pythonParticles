@@ -1,3 +1,10 @@
-foo = {"a":1,"b":3}
-for a in foo:
-	print(foo[a])
+from multiprocessing.dummy import Pool as ThreadPool 
+
+
+def foo (num1, num2):
+	print(num1 + num2)
+
+
+pool = ThreadPool(4)
+data = [(1,2),(2,3),(5,6)]
+pool.starmap(foo,data)

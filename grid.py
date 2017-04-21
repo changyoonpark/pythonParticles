@@ -45,7 +45,7 @@ class Node:
 	def gW(self,particlePos):
 		q = (particlePos - self.nodePos) / self.h
 		return Vec2(self.Nx(q.x) * self.N (q.x),
-					self.N (q.y) * self.Nx(q.y))
+					self.N (q.y) * self.Nx(q.y)) / self.h
 
 	def N(self,x):
 		abx = abs(x)
@@ -74,20 +74,24 @@ class Node:
 
 class Grid:
 
-	def __init__(self, domainExtent, h):
-		self.nx = int(domainExtent[0] / h) + 1
-		self.ny = int(domainExtent[1] / h) + 1
-		self.domainExtent = domainExtent
+	def __init__(self, particleSet, h):
+		# self.nx = int(domainExtent[0] / h) + 1
+		# self.ny = int(domainExtent[1] / h) + 1
+		# self.domainExtent = domainExtent
 		self.h = h
 		self.nodes = dict()
 
-		for x in range(0,self.nx):
-			for y in range(0,self.ny):
-				nodePos = Vec2(x * self.h, y * self.h);
-				print("adding node at : {}".format(self.hashFunction(nodePos)))
-				self.nodes[self.hashFunction(nodePos)] = Node(nodePos, h);
+		for p in particleSet:
+			(m, n) = self.hashFunction(p.pos)
+			for i in range(-1,3):
+				for j in range(-1,3):
+					nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
+					if self.nodes.get(self.hashFunction(nodePos)) is None :
+						self.nodes[self.hashFunction(nodePos)] = Node(nodePos, h);
+						# print("adding node at {}".format(self.hashFunction(nodePos)))
 
+	
 	def hashFunction(self,pos):
-		return (int(pos.x / self.h),int(pos.y / self.h))
+		return (int( (pos.x + 1E-10) / self.h),int( (pos.y + 1E-10) / self.h))
 
 	

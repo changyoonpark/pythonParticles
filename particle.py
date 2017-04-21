@@ -41,11 +41,12 @@ class ParticleSystem:
 		               particleInitData,
 		               boundaryInitData):
 
+
 		self.systemConstants = dict()
 		self.particleSet = []
 		self.dimLim = Vec2(None,None,tup = particleInitData.systemConstants["domain"])
 		self.scat = None
-		self.dPlot = None		
+		self.nodeScat = None
 		self.animation = None
 		self.hashData = []
 		self.tstep = 0
@@ -54,7 +55,7 @@ class ParticleSystem:
 
 		print("Initializing matplotlib")
 
-		self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(8, 30),nrows = 2,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
+		self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(8, 8),nrows = 2,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
 		# self.fig = plt.figure(1,)
 		# self.fig = plt.subplots(nrows = 2,ncols = 1)		
 		# self.ax = self.fig.add_subplot(gs[0])
@@ -112,11 +113,10 @@ class ParticleSystem:
 			self.hashData.append([])
 			for j in range(0,self.gridLim[1]):
 				self.hashData[-1].append([])
-		# self.gridList = [[],[],[],[]]
+
 		self.gridListAll = []
 		self.pairsData = dict()
 
-		# foo = 0
 		for gridX in range(0,self.gridLim[0]):
 			for gridY in range(0,self.gridLim[1]):
 				# self.gridList[foo].append((gridX,gridY))
@@ -125,6 +125,8 @@ class ParticleSystem:
 					# foo += 1
 					# if foo > 3:
 						# foo = 3
+
+
 
 	def getPoints(self):
 		pointData = []
@@ -139,7 +141,7 @@ class ParticleSystem:
 		pmax = -1
 		pmin = 9E20
 
-		cmap = cm.get_cmap('rainbow')
+		cmap = cm.get_cmap('gray')
 
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
@@ -231,6 +233,15 @@ class ParticleSystem:
 		self.scat.set_offsets(pdat)
 		self.scat.set_color(ddat)
 
+		if self.systemConstants.get("grid") is not None:
+			cmap = cm.get_cmap('rainbow')
+			nodePDat = np.array([[self.systemConstants["grid"].nodes[nodeKey].nodePos.x,self.systemConstants["grid"].nodes[nodeKey].nodePos.y] for nodeKey in self.systemConstants["grid"].nodes ])
+			nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["color"] for nodeKey in self.systemConstants["grid"].nodes])
+			nodeColorDat *= 1./nodeColorDat.max()
+			nodeColorDat = [cmap(nodeColor) for nodeColor in nodeColorDat]
+			self.nodeScat.set_offsets(nodePDat)
+			self.nodeScat.set_color(nodeColorDat)
+
 		self.ax2.set_xlim(-1,int(len(self.systemConstants["densityDeviation"])))
 		maxdev = 0
 		for dat in self.systemConstants["densityDeviation"]:
@@ -257,6 +268,11 @@ class ParticleSystem:
 
 		self.scat = self.ax.scatter(xdat,ydat,c=densData,
 						s=36*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+
+		self.nodeScat = self.ax.scatter([],[],c=[],
+						s=70*self.systemConstants["interactionlen"]**2, alpha=0.2, marker='s', lw=0)
+
+
 		self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
 
 		# self.scat = self.ax.scatter(xdat,ydat,color='Black',
@@ -329,8 +345,12 @@ class ParticleSystem:
 		for particle in self.particleSet:
 			particle.neighborList = []
 
+
+
+
 	def hash(self):
 		self.wipeHash()
+
 		for particle in self.particleSet:
 			particle.hash = (int(particle.pos.x // self.hashGridSize),
 						     int(particle.pos.y // self.hashGridSize))
