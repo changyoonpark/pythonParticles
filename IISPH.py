@@ -52,15 +52,15 @@ class IISPH_Algorithm :
 		for particle in particleSet:
 			hashVal = systemConstants["grid"].hashFunction(particle.pos)
 
-			for i in range(-3,5):
-				for j in range(-3,5):
+			for i in range(-1,3):
+				for j in range(-1,3):
 
 					nodes = systemConstants["grid"].nodes
 					node = nodes.get((hashVal[0]+i,hashVal[1]+j))
 					if node is None :
 						continue
 					node.quantities["color"]     += node.W(particle.pos)
-					node.quantities["colorGrad"] += node.gW(particle.pos)
+
 
 
 
@@ -83,13 +83,12 @@ class IISPH_Algorithm :
 			self.traverseParticle(neighbor)
 
 	def detectBoundaries(self, systemConstants, pairsData, particleSet):
-		k1 = 0.7
-		k2 = 1.2
-
+		k1 = 0.35
+		k2 = 0.7
 		for key in systemConstants["grid"].nodes:
 			node = systemConstants["grid"].nodes[key]
+			node.quantities["colorGrad"] = systemConstants["grid"].sampleScalarGradientFromGrid(node.nodePos,"color")
 			node.quantities["colorGradIntensity"] = node.quantities["colorGrad"].length()
-			node.quantities["colorGrad"] = node.quantities["colorGrad"] / node.quantities["colorGradIntensity"]
 
 		for key in systemConstants["grid"].nodes:
 			node = systemConstants["grid"].nodes[key]
@@ -106,6 +105,7 @@ class IISPH_Algorithm :
 			else:
 				node.quantities["nonMaxSuppressedColorGradIntensity"] = node.quantities["colorGradIntensity"]
 
+			# print(node.quantities["nonMaxSuppressedColorGradIntensity"])
 
 			# else:
 			# 	if node.quantities["colorGradIntensity"] > k1 :
@@ -125,10 +125,10 @@ class IISPH_Algorithm :
 
 			hashVal = systemConstants["grid"].hashFunction(particle.pos)
 			particle.particleVariables["colorGrad"] = systemConstants["grid"].sampleScalarFromGrid(particle.pos,"nonMaxSuppressedColorGradIntensity")
-
+			# print(particle.particleVariables["colorGrad"])
 			if particle.particleVariables["colorGrad"] > k1 :
 				if particle.particleVariables["colorGrad"] < k2 :
-					particle.particleVariables["colorGrad"] = 0.7
+					particle.particleVariables["colorGrad"] = 0.5
 					particle.particleVariables["edgeType"] = "Weak"
 				else:
 					particle.particleVariables["colorGrad"] = 1.0

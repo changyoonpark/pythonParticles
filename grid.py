@@ -38,13 +38,22 @@ class Node:
 		self.quantities = dict()
 
 	def W(self,particlePos):
-		q = (particlePos - self.nodePos) / (2. * self.h)
+		q = (particlePos - self.nodePos) / (self.h)
 		return self.N( q.x ) * self.N( q.y )
 
 	def gW(self,particlePos):
-		q = (particlePos - self.nodePos) / (2. * self.h)
+		q = (particlePos - self.nodePos) / (self.h)
 		return Vec2(self.Nx(q.x) * self.N (q.x),
 					self.N (q.y) * self.Nx(q.y)) / self.h
+
+	# def W(self,particlePos):
+	# 	q = (particlePos - self.nodePos) / (2. * self.h)
+	# 	return self.N( q.x ) * self.N( q.y )
+
+	# def gW(self,particlePos):
+	# 	q = (particlePos - self.nodePos) / (2. * self.h)
+	# 	return Vec2(self.Nx(q.x) * self.N (q.x),
+	# 				self.N (q.y) * self.Nx(q.y)) / self.h
 
 	# def nablW(self,particlePos):
 	# 	q = (particlePos - self.nodePos) / self.h
@@ -97,18 +106,32 @@ class Grid:
 
 		for p in particleSet:
 			(m, n) = self.hashFunction(p.pos)
-			for i in range(-3,5):
-				for j in range(-3,5):
+			for i in range(-1,3):
+				for j in range(-1,3):
 					nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 					if self.nodes.get(self.hashFunction(nodePos)) is None :
 						self.nodes[self.hashFunction(nodePos)] = Node(nodePos, h);
 						# print("adding node at {}".format(self.hashFunction(nodePos)))
 
+	def sampleScalarGradientFromGrid(self,pos,quantity):
+		(m, n) = self.hashFunction(pos)
+		q = Vec2(0,0)
+		for i in range(-1, 3):
+			for j in range(-1, 3):
+				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
+				node = self.nodes.get(self.hashFunction(nodePos))
+				if node is None :
+					continue
+				q += node.quantities[quantity] * node.gW(pos)
+
+		return q
+
+
 	def sampleScalarFromGrid(self,pos,quantity):
 		(m, n) = self.hashFunction(pos)
 		q = 0
-		for i in range(-3, 5):
-			for j in range(-3, 5):
+		for i in range(-1, 3):
+			for j in range(-1, 3):
 				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 				node = self.nodes.get(self.hashFunction(nodePos))
 				if node is None :
@@ -120,8 +143,8 @@ class Grid:
 	def sampleVecFromGrid(self,pos,quantity):
 		(m, n) = self.hashFunction(pos)
 		q = Vec2(0,0)
-		for i in range(-3, 5):
-			for j in range(-3, 5):
+		for i in range(-1, 3):
+			for j in range(-1, 3):
 				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 				node = self.nodes.get(self.hashFunction(nodePos))
 				if node is None :

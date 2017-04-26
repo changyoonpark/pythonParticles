@@ -55,7 +55,8 @@ class ParticleSystem:
 
 		print("Initializing matplotlib")
 
-		self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(8, 8),nrows = 2,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
+		# self.fig, (self.ax,self.ax2) = plt.subplots(figsize=(12, 8),nrows = 1,ncols = 1,gridspec_kw = {'height_ratios' : [2,1]})		
+		self.fig, (self.ax, self.ax2) = plt.subplots(figsize=(12, 12),nrows = 2,ncols = 1)		
 		# self.fig = plt.figure(1,)
 		# self.fig = plt.subplots(nrows = 2,ncols = 1)		
 		# self.ax = self.fig.add_subplot(gs[0])
@@ -65,6 +66,9 @@ class ParticleSystem:
 		self.ax.set_ylim(0, self.dimLim.y)
 		self.ax.set_aspect('equal')
 
+		self.ax2.set_xlim(0, self.dimLim.x)
+		self.ax2.set_ylim(0, self.dimLim.y)
+		self.ax2.set_aspect('equal')
 		# self.ax2 = self.fig2.add_axes([0, 0, 1, 1], frameon=True)		
 
 		print("Reading initial particle data")
@@ -178,13 +182,18 @@ class ParticleSystem:
 
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
-			# 	if particle.particleVariables["colorGrad"] > gradmax:
-			# 		gradmax = particle.particleVariables["colorGrad"]
-			# 	if particle.particleVariables["colorGrad"] < gradmin:
-			# 		gradmin = particle.particleVariables["colorGrad"]
+				if particle.particleVariables.get("colorGrad") is None:
+					break
 
-				# pData.append(particle.particleVariables["colorGradAfterGapClosing"])
-				pData.append(particle.particleVariables["colorGrad"])
+
+				# if particle.particleVariables["colorGrad"] > gradmax:
+				# 	gradmax = particle.particleVariables["colorGrad"]
+				# if particle.particleVariables["colorGrad"] < gradmin:
+				# 	gradmin = particle.particleVariables["colorGrad"]
+
+				pData.append(particle.particleVariables["colorGradAfterGapClosing"])
+
+				# pData.append(particle.particleVariables["colorGrad"])
 			else:
 				pData.append(None)
 
@@ -272,8 +281,9 @@ class ParticleSystem:
 		if self.systemConstants.get("grid") is not None:
 			cmap = cm.get_cmap('rainbow')
 			nodePDat = np.array([[self.systemConstants["grid"].nodes[nodeKey].nodePos.x,self.systemConstants["grid"].nodes[nodeKey].nodePos.y] for nodeKey in self.systemConstants["grid"].nodes ])
-			# nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["color"] for nodeKey in self.systemConstants["grid"].nodes])
-			nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["colorGradIntensity"] for nodeKey in self.systemConstants["grid"].nodes])
+			nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["color"] for nodeKey in self.systemConstants["grid"].nodes])
+			# nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["nonMaxSuppressedColorGradIntensity"] for nodeKey in self.systemConstants["grid"].nodes])
+			# nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["colorGradIntensity"] for nodeKey in self.systemConstants["grid"].nodes])
 			nodeColorDat *= 1./nodeColorDat.max()
 			nodeColorDat = [cmap(nodeColor) for nodeColor in nodeColorDat]
 			self.nodeScat.set_offsets(nodePDat)
@@ -296,15 +306,15 @@ class ParticleSystem:
 
 
 
-		self.ax2.set_xlim(-1,int(len(self.systemConstants["densityDeviation"])))
-		maxdev = 0
-		for dat in self.systemConstants["densityDeviation"]:
-			if maxdev < dat[1]:
-				maxdev = dat[1]   
-		self.ax2.set_ylim(0,maxdev*1.1)
+		# self.ax2.set_xlim(-1,int(len(self.systemConstants["densityDeviation"])))
+		# maxdev = 0
+		# for dat in self.systemConstants["densityDeviation"]:
+			# if maxdev < dat[1]:
+				# maxdev = dat[1]   
+		# self.ax2.set_ylim(0,maxdev*1.1)
 
-		plt.title('{} Iterations, Average Density Deviation {}'.format(len(self.systemConstants["densityDeviation"]),self.systemConstants["densityDeviation"][-1][1]))
-		self.densityDeviation.set_offsets(self.systemConstants["densityDeviation"])
+		# plt.title('{} Iterations, Average Density Deviation {}'.format(len(self.systemConstants["densityDeviation"]),self.systemConstants["densityDeviation"][-1][1]))
+		# self.densityDeviation.set_offsets(self.systemConstants["densityDeviation"])
 		plt.savefig('plots/rotdisc/rotdisc_{}.png'.format(self.tstep))
 
 	def solveTimeStep(self):
@@ -321,14 +331,14 @@ class ParticleSystem:
 		ydat = np.array([p[1] for p in pointData])
 
 		self.scat = self.ax.scatter(xdat,ydat,c=densData,
-						s=36*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
+						s=100*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
 
-		self.nodeScat = self.ax.scatter([],[],c=[],
-						s=0*self.systemConstants["interactionlen"]**2, alpha=0.9, lw=0)
+		self.nodeScat = self.ax2.scatter([],[],c=[],
+						s=160*self.systemConstants["interactionlen"]**2, alpha=1.0, lw=0, marker='s')
 		# self.nodeScat = self.ax.scatter([],[],c=[],
 		# 				s=30*self.systemConstants["interactionlen"]**2, alpha=0.9, marker='s', lw=0)
 
-		self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
+		# self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
 
 		# self.scat = self.ax.scatter(xdat,ydat,color='Black',
 		# 				s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
