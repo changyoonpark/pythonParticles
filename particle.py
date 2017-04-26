@@ -167,6 +167,41 @@ class ParticleSystem:
 
 		return pdat
 
+	def getColorGrad(self):
+		pData = []
+		pdat = []
+
+		gradmax = -1
+		gradmin = 9E20
+
+		cmap = cm.get_cmap('rainbow')
+
+		for particle in self.particleSet:
+			if particle.particleVariables["isBoundary"] is False :
+			# 	if particle.particleVariables["colorGrad"] > gradmax:
+			# 		gradmax = particle.particleVariables["colorGrad"]
+			# 	if particle.particleVariables["colorGrad"] < gradmin:
+			# 		gradmin = particle.particleVariables["colorGrad"]
+
+				# pData.append(particle.particleVariables["colorGradAfterGapClosing"])
+				pData.append(particle.particleVariables["colorGrad"])
+			else:
+				pData.append(None)
+
+
+		for grad in pData:
+			if grad is None : 
+				pdat.append((0.5,0.5,0.5))
+			else:
+				if grad == 0:
+					pdat.append((0,0,0))
+				else:
+					normalize = ((grad-gradmin)/(gradmax-gradmin+0.001))
+					pdat.append(cmap(normalize))
+
+		return pdat
+
+
 	def getDensity(self):
 		densData = []
 		ddat = []
@@ -214,7 +249,8 @@ class ParticleSystem:
 		self.solveTimeStep()
 
 		pdat = self.getPoints()
-		ddat = self.getPressure()
+		# ddat = self.getPressure()
+		ddat = self.getColorGrad()
 		# ddat = self.getDensity()
 
 		print("time : {}".format(t))
@@ -236,11 +272,29 @@ class ParticleSystem:
 		if self.systemConstants.get("grid") is not None:
 			cmap = cm.get_cmap('rainbow')
 			nodePDat = np.array([[self.systemConstants["grid"].nodes[nodeKey].nodePos.x,self.systemConstants["grid"].nodes[nodeKey].nodePos.y] for nodeKey in self.systemConstants["grid"].nodes ])
-			nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["color"] for nodeKey in self.systemConstants["grid"].nodes])
+			# nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["color"] for nodeKey in self.systemConstants["grid"].nodes])
+			nodeColorDat = np.array([self.systemConstants["grid"].nodes[nodeKey].quantities["colorGradIntensity"] for nodeKey in self.systemConstants["grid"].nodes])
 			nodeColorDat *= 1./nodeColorDat.max()
 			nodeColorDat = [cmap(nodeColor) for nodeColor in nodeColorDat]
 			self.nodeScat.set_offsets(nodePDat)
 			self.nodeScat.set_color(nodeColorDat)
+
+			# for nodekey in self.systemConstants["grid"].nodes:
+			# 	dx = 0.03 * self.systemConstants["grid"].nodes[nodekey].quantities["colorGrad"].x
+			# 	dy = 0.03 * self.systemConstants["grid"].nodes[nodekey].quantities["colorGrad"].y
+			# 	self.ax.arrow(self.systemConstants["grid"].nodes[nodekey].nodePos.x - dx,
+			# 				  self.systemConstants["grid"].nodes[nodekey].nodePos.y - dy,
+			# 				  2 * dx,
+			# 				  2 * dy,
+			# 				  width = 0.02,
+			# 				  head_length = 0.02,
+			# 				  head_width = 0.05,
+			# 				  fc='k', ec='k'
+			# 				  )
+
+
+
+
 
 		self.ax2.set_xlim(-1,int(len(self.systemConstants["densityDeviation"])))
 		maxdev = 0
@@ -270,8 +324,9 @@ class ParticleSystem:
 						s=36*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
 
 		self.nodeScat = self.ax.scatter([],[],c=[],
-						s=70*self.systemConstants["interactionlen"]**2, alpha=0.2, marker='s', lw=0)
-
+						s=0*self.systemConstants["interactionlen"]**2, alpha=0.9, lw=0)
+		# self.nodeScat = self.ax.scatter([],[],c=[],
+		# 				s=30*self.systemConstants["interactionlen"]**2, alpha=0.9, marker='s', lw=0)
 
 		self.densityDeviation = self.ax2.scatter([0],[1],linewidths = 0.1)
 

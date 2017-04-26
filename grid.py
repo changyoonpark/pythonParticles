@@ -37,15 +37,18 @@ class Node:
 		self.h = h
 		self.quantities = dict()
 
-
 	def W(self,particlePos):
-		q = (particlePos - self.nodePos) / self.h
+		q = (particlePos - self.nodePos) / (2. * self.h)
 		return self.N( q.x ) * self.N( q.y )
 
 	def gW(self,particlePos):
-		q = (particlePos - self.nodePos) / self.h
+		q = (particlePos - self.nodePos) / (2. * self.h)
 		return Vec2(self.Nx(q.x) * self.N (q.x),
 					self.N (q.y) * self.Nx(q.y)) / self.h
+
+	# def nablW(self,particlePos):
+	# 	q = (particlePos - self.nodePos) / self.h
+	# 	return  
 
 	def N(self,x):
 		abx = abs(x)
@@ -70,6 +73,17 @@ class Node:
 		else :
 			return 0
 
+	# def Nxx(self,x):
+	# 	if x == 0:
+	# 		return 0
+
+	# 	abx = abs(x)
+	# 	if (abx < 1 and abx >= 0):
+	# 		return x * (3./2. * abx - 2.)
+	# 	elif (abx >= 1 and abx < 2):
+	# 		return (abx / x) * (- 0.5 * abx * abx + 2. * abx - 2.);
+	# 	else :
+	# 		return 0
 
 
 class Grid:
@@ -83,14 +97,39 @@ class Grid:
 
 		for p in particleSet:
 			(m, n) = self.hashFunction(p.pos)
-			for i in range(-1,3):
-				for j in range(-1,3):
+			for i in range(-3,5):
+				for j in range(-3,5):
 					nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 					if self.nodes.get(self.hashFunction(nodePos)) is None :
 						self.nodes[self.hashFunction(nodePos)] = Node(nodePos, h);
 						# print("adding node at {}".format(self.hashFunction(nodePos)))
 
+	def sampleScalarFromGrid(self,pos,quantity):
+		(m, n) = self.hashFunction(pos)
+		q = 0
+		for i in range(-3, 5):
+			for j in range(-3, 5):
+				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
+				node = self.nodes.get(self.hashFunction(nodePos))
+				if node is None :
+					continue
+				q += node.quantities[quantity] * node.W(pos)
+
+		return q
 	
+	def sampleVecFromGrid(self,pos,quantity):
+		(m, n) = self.hashFunction(pos)
+		q = Vec2(0,0)
+		for i in range(-3, 5):
+			for j in range(-3, 5):
+				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
+				node = self.nodes.get(self.hashFunction(nodePos))
+				if node is None :
+					continue
+				q += node.quantities[quantity] * node.W(pos)
+
+		return q
+
 	def hashFunction(self,pos):
 		return (int( (pos.x + 1E-10) / self.h),int( (pos.y + 1E-10) / self.h))
 

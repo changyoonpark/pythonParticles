@@ -88,8 +88,11 @@ class ParticleInitData:
 		# pillar
 		# (self.posDat,pmass) = generateBlockSquare(Vec2(padding,padding+d + 0.027 * d),Vec2(maxx-padding,maxy-padding - 2 * d + 0.027 * d),d)
 
+		# # dam
+		# (self.posDat,pmass) = generateBlockStaggered(Vec2(padding+0.*d,padding+d),Vec2(d+maxx/2,maxy/1.5),d)
 		# dam
-		(self.posDat,pmass) = generateBlockStaggered(Vec2(padding+0.*d,padding+d),Vec2(d+maxx/2,maxy/1.5),d)
+		(self.posDat,pmass) = generateBlockSquare(Vec2(padding+0.*d,padding+d),Vec2(d+maxx/2,maxy/1.5),d)
+
 		self.velDat = []
 		self.a_external = []
 		print("Particle Mass : {}".format(pmass))

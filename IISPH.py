@@ -1,7 +1,7 @@
 from helpers import *
 from grid import *
 import scipy as sp
-
+import math
 
 class IISPH_Algorithm :
 
@@ -17,9 +17,11 @@ class IISPH_Algorithm :
 		self.gW = gW
 		self.lW = lW
 		self.currentTime = 0
+		self.pixelSmoothing = 0.5
 		self._proceduresInOrder =  [
 									   self.initializeGrid,
 									   self.rasterizeGrid,
+									   self.detectBoundaries,
 									   self.calculateDensity,
 			  						   self.calculateAdvectionVel,
 			  						   self.calculateSourceTerm,
@@ -30,7 +32,7 @@ class IISPH_Algorithm :
 		 						   ]
 
 	def initializeGrid(self,systemConstants, pairsData, particleSet):
-		systemConstants["grid"] = Grid(particleSet, systemConstants["interactionlen"])
+		systemConstants["grid"] = Grid(particleSet, self.pixelSmoothing * systemConstants["interactionlen"])
 
 
 	def rasterizeGrid(self,systemConstants, pairsData, particleSet):
@@ -41,25 +43,108 @@ class IISPH_Algorithm :
 			node.quantities["pressure"] = 0
 			node.quantities["density"] = 0
 			node.quantities["colorGrad"] = Vec2(0,0)
+			node.quantities["colorGradIntensity"] = 0
+			node.quantities["colorGradX"] = 0
+			node.quantities["colorGradY"] = 0
+			node.quantities["edgeType"] = None
+
     	# Iterate through the particles and rasterize onto nodes
 		for particle in particleSet:
 			hashVal = systemConstants["grid"].hashFunction(particle.pos)
 
-			for i in range(-1,3):
-				for j in range(-1,3):
+			for i in range(-3,5):
+				for j in range(-3,5):
 
 					nodes = systemConstants["grid"].nodes
 					node = nodes.get((hashVal[0]+i,hashVal[1]+j))
 					if node is None :
 						continue
 					node.quantities["color"]     += node.W(particle.pos)
-					# node.quantities["color"]     += 0.1
 					node.quantities["colorGrad"] += node.gW(particle.pos)
-					# node.quantities["pressure"]  += node.W(particle.pos) * particle.particleVariables["pressure"]
-					# node.quantities["density"]   += node.W(particle.pos) * particle.particleVariables["rho"]
+
+
+
+
+	def traverseParticle(self, particle):		
+
+		if particle.particleVariables["traversed"] is True :
+			return
+
+		if particle.particleVariables["edgeType"] == None :
+			return
+
+
+		particle.particleVariables["colorGradAfterGapClosing"] = 1.0
+		particle.particleVariables["traversed"] = True
+
+		for neighbor in particle.neighborList:
+			if neighbor.particleVariables["edgeType"] == "Strong" :
+				continue
+			self.traverseParticle(neighbor)
+
+	def detectBoundaries(self, systemConstants, pairsData, particleSet):
+		k1 = 0.7
+		k2 = 1.2
 
 		for key in systemConstants["grid"].nodes:
-			print(systemConstants["grid"].nodes[key].quantities["color"])
+			node = systemConstants["grid"].nodes[key]
+			node.quantities["colorGradIntensity"] = node.quantities["colorGrad"].length()
+			node.quantities["colorGrad"] = node.quantities["colorGrad"] / node.quantities["colorGradIntensity"]
+
+		for key in systemConstants["grid"].nodes:
+			node = systemConstants["grid"].nodes[key]
+			gradDir = node.quantities["colorGrad"]
+
+			evalPoint1 = node.nodePos + gradDir * self.pixelSmoothing * systemConstants["interactionlen"]
+			r = systemConstants["grid"].sampleScalarFromGrid(evalPoint1,"colorGradIntensity")
+
+			evalPoint2 = node.nodePos - gradDir * self.pixelSmoothing * systemConstants["interactionlen"]
+			p = systemConstants["grid"].sampleScalarFromGrid(evalPoint2,"colorGradIntensity") 
+
+			if node.quantities["colorGradIntensity"] < r or node.quantities["colorGradIntensity"] < p :
+				node.quantities["nonMaxSuppressedColorGradIntensity"] = 0.0
+			else:
+				node.quantities["nonMaxSuppressedColorGradIntensity"] = node.quantities["colorGradIntensity"]
+
+
+			# else:
+			# 	if node.quantities["colorGradIntensity"] > k1 :
+			# 		node.quantities["nonMaxSuppressedColorGradIntensity"] = node.quantities["colorGradIntensity"]
+			# 		if node.quantities["colorGradIntensity"] < k2 :
+			# 			node.quantities["edgeType"] = "weak"
+			# 			node.quantities["nonMaxSuppressedColorGradIntensity"] = 0.5
+			# 		else:
+			# 			node.quantities["edgeType"] = "strong"
+			# 			node.quantities["nonMaxSuppressedColorGradIntensity"] = 1.0
+			# 	else:
+			# 		node.quantities["nonMaxSuppressedColorGradIntensity"] = 0.0
+
+		for particle in particleSet:
+			particle.particleVariables["traversed"] = False
+			particle.particleVariables["edgeType"] = None
+
+			hashVal = systemConstants["grid"].hashFunction(particle.pos)
+			particle.particleVariables["colorGrad"] = systemConstants["grid"].sampleScalarFromGrid(particle.pos,"nonMaxSuppressedColorGradIntensity")
+
+			if particle.particleVariables["colorGrad"] > k1 :
+				if particle.particleVariables["colorGrad"] < k2 :
+					particle.particleVariables["colorGrad"] = 0.7
+					particle.particleVariables["edgeType"] = "Weak"
+				else:
+					particle.particleVariables["colorGrad"] = 1.0
+					particle.particleVariables["edgeType"] = "Strong"
+			else:
+				particle.particleVariables["colorGrad"] = 0.0
+
+			particle.particleVariables["colorGradAfterGapClosing"] = particle.particleVariables["colorGrad"] 
+
+
+		for particle in particleSet:
+			if particle.particleVariables["edgeType"] == "Strong" : 
+				self.traverseParticle(particle)
+			
+
+
 
 	def initializeBoundaryParticleVariables(self,systemConstants, pairsData, particleSet):		
 		for particle in particleSet:
