@@ -1,0 +1,6 @@
+PWD /Users/SJCY/Dropbox/isph_with_edgetracking_2017/code/pythonParticles
+INPUT /usr/local/texlive/2016/texmf.cnf
+INPUT /usr/local/texlive/2016/texmf-dist/web2c/texmf.cnf
+INPUT /usr/local/texlive/2016/texmf-var/web2c/pdftex/pdflatex.fmt
+INPUT scratchpad.py
+OUTPUT scratchpad.log

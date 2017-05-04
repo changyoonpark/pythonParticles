@@ -1,26 +1,13 @@
 import numpy as np
-from matplotlib import pyplot as plt
+from scipy.sparse import csr_matrix
+# row = np.array( [0, 0, 1, 2, 2, 2, 2])
+# col = np.array( [0, 2, 2, 0, 1, 2, 2])
+# data = np.array([1, 2, 3, 4, 5, 6, -4])
+# print(csr_matrix((data, (row, col)), shape=(3, 3)).toarray())
+# print( (row, col))
+# # array([[1, 0, 2],
+# #        [0, 0, 3],
+# #        [4, 5, 6]])\
 
-# Differential equation
-# diff = y'= y/x (or say x+y)
-def diff(x,y):
-    return x/y # try also x+y
-
-x = np.linspace(-10,10,50)
-y = np.linspace(-10,10,50)
-
-# use x,y
-for j in x:
-    for k in y:
-        slope = diff(j,k)
-        domain = np.linspace(j-0.07,j+0.07,2)
-        def fun(x1,y1):
-            z = slope*(domain-x1)+y1
-            return z
-        plt.plot(domain,fun(j,k),solid_capstyle='projecting',solid_joinstyle='bevel')
-
-plt.title("Slope field y'")
-plt.grid(True)
-plt.show()
-    
-print("End of the program")
+foo = np.(10,dtype = float)
+print(foo)

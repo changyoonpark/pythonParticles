@@ -1,7 +1,11 @@
 from helpers import *
 from grid import *
 import scipy as sp
+import numpy as np
 import math
+import matplotlib.pyplot as plt
+from scipy.sparse import csr_matrix
+from scipy.sparse import linalg
 
 class IISPH_Algorithm :
 
@@ -17,16 +21,20 @@ class IISPH_Algorithm :
 		self.gW = gW
 		self.lW = lW
 		self.currentTime = 0
-		self.pixelSmoothing = 0.5
+		self.pixelSmoothing = 0.25
 		self._proceduresInOrder =  [
 									   self.initializeGrid,
 									   self.rasterizeGrid,
 									   self.detectBoundaries,
 									   self.calculateDensity,
 			  						   self.calculateAdvectionVel,
-			  						   self.calculateSourceTerm,
-			  						   self.calculateDiagonal,
-			  						   self.solveForPressure,
+
+			  						   self.solvePPE,
+			  						   # self.calculateSourceTerm,
+
+			  						   # self.calculateDiagonal,
+			  						   # self.solveForPressure,
+
 			  						   self.integration,
 
 		 						   ]
@@ -75,6 +83,7 @@ class IISPH_Algorithm :
 
 
 		particle.particleVariables["colorGradAfterGapClosing"] = 1.0
+		particle.particleVariables["isFreeSurface"] = True
 		particle.particleVariables["traversed"] = True
 
 		for neighbor in particle.neighborList:
@@ -121,6 +130,7 @@ class IISPH_Algorithm :
 
 		for particle in particleSet:
 			particle.particleVariables["traversed"] = False
+			particle.particleVariables["isFreeSurface"] = False
 			particle.particleVariables["edgeType"] = None
 
 			hashVal = systemConstants["grid"].hashFunction(particle.pos)
@@ -398,6 +408,238 @@ class IISPH_Algorithm :
 
 			print("Performing Jacobi iteration for pressure field. Iteration : {} / Average Density Deviation : {}".format(l,rhoError))
 			l += 1
+
+
+	# def calculateSourceTerm(self,systemConstants, pairsData, particleSet): 
+	# 	for particle in particleSet:
+
+	# 		if particle.particleVariables["isBoundary"] is False:
+
+	# 			sum1 = 0
+	# 			sum2 = 0
+
+	# 			for neighbor in particle.neighborList:
+	# 				pairData = pairsData[(particle,neighbor)]
+	# 				relvel = particle.vel - neighbor.vel
+					
+	# 				if neighbor.particleVariables["isBoundary"] is False:
+	# 					mff = neighbor.particleVariables["mass"]
+	# 					sum1 += mff * (relvel).dot(self.gW(pairData,systemConstants["interactionlen"]))
+
+	# 				if neighbor.particleVariables["isBoundary"] is True:
+	# 					mfb = neighbor.particleVariables["psi"]
+	# 					sum2 += mfb * (relvel).dot(self.gW(pairData,systemConstants["interactionlen"]))
+
+	# 			particle.particleVariables["source"] = systemConstants["rho0"] - particle.particleVariables["rho"]
+	# 			particle.particleVariables["source"] -= systemConstants["dt"] * sum1 
+	# 			particle.particleVariables["source"] -= systemConstants["dt"] * sum2
+
+
+	def calculateOmega(self, particle, systemConstants, pairsData):		
+		sum1 = Vec2(0,0)
+		sum2 = Vec2(0,0)
+		for neighbor in particle.neighborList:
+			pairIJ = pairsData[(particle,neighbor)]
+			if neighbor.particleVariables["isBoundary"] is False:
+				sum1 += neighbor.particleVariables["mass"] * self.gW(pairIJ, systemConstants["interactionlen"])
+			else:
+				sum2 += neighbor.particleVariables["psi"] * self.gW(pairIJ, systemConstants["interactionlen"])
+
+		return (sum1,sum2)
+
+	def solvePPE(self, systemConstants, pairsData, particleSet):
+
+		systemConstants["bVector"] = np.zeros(len(particleSet),dtype = float)
+		systemConstants["pVector"] = np.zeros(len(particleSet),dtype = float)
+
+		row = []
+		col = []
+		entry = []
+
+		# Pre calculate Omega
+		for particle in particleSet:
+			(particle.particleVariables["omegaF"], particle.particleVariables["omegaB"]) = self.calculateOmega(particle, systemConstants, pairsData)
+
+		# Set the RHS, And the corresponding Entries For the A Matrix
+		for particle in particleSet:
+			i = particle.pID
+
+			if particle.particleVariables["isBoundary"] is False: 
+
+				if particle.particleVariables["isFreeSurface"] is False:
+
+					sum1 = 0
+					sum2 = 0
+
+					for neighbor in particle.neighborList:
+						pairIJ = pairsData[(particle,neighbor)]
+						relvel = particle.vel - neighbor.vel
+						# if neighbor.particleVariables["isFreeSurface"] is False:
+						if neighbor.particleVariables["isBoundary"] is False:
+							sum1 += neighbor.particleVariables["mass"] * relvel.dot(self.gW(pairIJ,systemConstants["interactionlen"]))
+						else:
+							sum2 += neighbor.particleVariables["psi"] * relvel.dot(self.gW(pairIJ,systemConstants["interactionlen"]))
+						# else:
+
+					# print(len(particleSet), len())
+					systemConstants["bVector"][i] = (1./(systemConstants["dt"] ** 2)) * (systemConstants["rho0"] - particle.particleVariables["rho"] - systemConstants["dt"] * (sum1 + sum2))
+
+					# DIAGONAL TERM
+					diagonal = 0
+
+					# Term 1.1
+					diagonal += ( - particle.particleVariables["omegaF"].dot(particle.particleVariables["omegaF"])/(systemConstants["rho0"]**2))
+					# Term 1.3
+					diagonal += ( - 2 * systemConstants["gamma"] * particle.particleVariables["omegaF"].dot(particle.particleVariables["omegaB"])/(systemConstants["rho0"]**2))
+					# Term 3.1
+					diagonal += ( particle.particleVariables["omegaB"].dot(particle.particleVariables["omegaF"])/(systemConstants["rho0"]**2))
+					# Term 3.3
+					diagonal += ( 2 * systemConstants["gamma"] * particle.particleVariables["omegaB"].dot(particle.particleVariables["omegaB"])/(systemConstants["rho0"]**2))
+
+					row.append(i)
+					col.append(i)
+					entry.append(diagonal)
+
+					# NEIGHBOR PARTICLE TERMS
+					for neighbor in particle.neighborList:
+
+						pairIJ = pairsData[(particle,neighbor)]
+						j = neighbor.pID 
+						if neighbor.particleVariables["isBoundary"] is False:							
+							if neighbor.particleVariables["isFreeSurface"] is False:
+
+								value = 0
+								# Term 1.2
+								value += ( particle.particleVariables["omegaF"].dot( - neighbor.particleVariables["mass"] * self.gW(pairIJ,systemConstants["interactionlen"] )) / (systemConstants["rho0"] ** 2))
+								# Term 3.2
+								value += ( particle.particleVariables["omegaB"].dot(   neighbor.particleVariables["mass"] * self.gW(pairIJ,systemConstants["interactionlen"] )) / (systemConstants["rho0"] ** 2))
+								# Term 2.1
+								value += neighbor.particleVariables["mass"] * self.gW(pairIJ,systemConstants["interactionlen"]).dot(neighbor.particleVariables["omegaF"]) / (systemConstants["rho0"] ** 2)
+								# Term 2.3
+								value += 2 * systemConstants["gamma"] * neighbor.particleVariables["mass"] * self.gW(pairIJ,systemConstants["interactionlen"]).dot(neighbor.particleVariables["omegaB"]) / (systemConstants["rho0"] ** 2)
+
+								row.append(i)
+								col.append(j)
+								entry.append(value)
+
+						# NEIGHBOR OF NEIGHBOR TERMS
+								for nneighbor in neighbor.neighborList :
+									pairJK = pairsData[(neighbor,nneighbor)]
+									k = nneighbor.pID
+									if nneighbor.particleVariables["isBoundary"] is False:
+										if nneighbor.particleVariables["isFreeSurface"] is False:
+											# Term 2.3
+											value = neighbor.particleVariables["mass"] * self.gW(pairIJ, systemConstants["interactionlen"]).dot( nneighbor.particleVariables["mass"] * self.gW(pairJK, systemConstants["interactionlen"]) ) / (systemConstants["rho0"] ** 2)
+											row.append(i)
+											col.append(k)
+											entry.append(value)						
+				else:
+					row.append(i)
+					col.append(i)
+					entry.append(1)
+					systemConstants["bVector"][i] = 0
+
+			else:
+				row.append(i)
+				col.append(i)
+				entry.append(1)
+				systemConstants["bVector"][i] = 0
+
+
+		systemConstants["AMatrix"] = csr_matrix((entry, (row, col)))
+
+		# for i in range(0,len(particleSet)):
+			# print(systemConstants["AMatrix"][i,i])
+
+		fig, ax = plt.subplots(figsize=(4, 4),nrows = 1,ncols = 1)		
+		ax.spy(systemConstants["AMatrix"], markersize = 1)
+		ax.figure.show()
+
+		# systemConstants["pVector"] = linalg.spsolve(systemConstants["AMatrix"], systemConstants["bVector"])
+		systemConstants["pVector"] = linalg.bicg(systemConstants["AMatrix"], systemConstants["bVector"])[0]
+		print(len(systemConstants["pVector"]), len(systemConstants["bVector"]))
+		for particle in particleSet:
+			particle.particleVariables["pressure"] = systemConstants["pVector"][particle.pID]
+
+		for particle in particleSet:
+			# particle.particleVariables["a_p"] = self.calculatePressureAccel(particle,systemConstants,pairsData)
+			particle.particleVariables["a_p"] = Vec2(0,0)
+
+		# 	# Enforce pressure dirichlet condition on particles with no neighbors, or particles on the free surface 
+		# 	if particle.particleVariables["isFreeSurface"] or (len(particle.neighborList) == 1):
+		# 		pID = particle.pID
+		# 		print("Free surface : {}".format(pID))
+		# 		systemConstants["AMatrix"][:,pID] = 0
+		# 		systemConstants["AMatrix"][pID,:] = 0
+		# 		systemConstants["AMatrix"][pID,pID] = 1
+		# 		systemConstants["bVector"][pID] = 0
+
+
+		# print("Condition Number : {}".format(np.linalg.cond(systemConstants["AMatrix"].todense())))
+		# print("foo")
+		# print("eigs : {}".format(linalg.eigs(systemConstants["AMatrix"],k=3)))
+		
+
+
+
+	# def constructMatrix(self,systemConstants, pairsData, particleSet):
+
+	# 	rhs = []
+
+	# 	row = []
+	# 	col = []
+	# 	data = []
+
+	# 	for particle in particleSet:
+
+	# 		if particle.particleVariables["isBoundary"] is False:
+
+	# 			i = particle.pID
+
+	# 			# Set the RHS.
+	# 			systemConstants["bVector"][i] += systemConstants["rho0"] - particle.particleVariables["rho_adv"]
+	# 			omega = Vec2(0,0)
+
+	# 			for neighbor in particle.neighborList:					
+	# 				if neighbor.particleVariables["isBoundary"] is False:				
+	# 					pairIJ = pairsData[(particle,neighbor)]
+	# 					omega += neighbor.particleVariables["mass"] * self.gW(pairIJ,systemConstants["interactionlen"])
+
+	# 			# Diagonal
+	# 			systemConstants["aMatrix"][i,i] += particle.particleVariables["d_ii"].dot(omega)
+
+	# 			# "j" Columns
+	# 			for neighbor in particle.neighborList:
+	# 				if neighbor.particleVariables["isBoundary"] is False:
+	# 					j = neighbor.pID
+	# 					pairIJ = pairsData[(particle,neighbor)]
+
+	# 					systemConstants["aMatrix"][i,j] -= (neighbor.particleVariables["d_ii"] * neighbor.particleVariables["mass"])\
+	# 	            						.dot(self.gW(pairIJ,systemConstants["interactionlen"]))
+
+	# 			# "k" Columns
+	# 			for neighbor in particle.neighborList:
+	# 				if neighbor.particleVariables["isBoundary"] is False:										
+	# 					pairIJ = pairsData[(particle,neighbor)]
+
+	# 					for nneighbor in neighbor.neighborList:					
+	# 						if nneighbor.particleVariables["isBoundary"] is False:
+	# 							k = nneighbor.pID
+	# 							pairJK = pairsData[(neighbor,nneighbor)]
+
+	# 							systemConstants["aMatrix"][i,k] -= (self.calculate_dij(pairJK,systemConstants) * neighbor.particleVariables["mass"])\
+	# 			            						  .dot(self.gW(pairIJ,systemConstants["interactionlen"]))
+				
+	# 			# "l" Columns
+	# 			for neighbor in particle.neighborList:
+	# 				if neighbor.particleVariables["isBoundary"] is False:								
+	# 					l = neighbor.pID
+	# 					pairIL = pairsData[(particle,neighbor)]
+
+	# 					systemConstants["aMatrix"][i,l] += self.calculate_dij(pairIL,systemConstants).dot(omega)
+
+
+
 
 
 

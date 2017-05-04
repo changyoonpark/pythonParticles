@@ -90,10 +90,10 @@ class ParticleSystem:
 			num += 1
 
 
-		print("Initializing Matrix")
-		self.systemConstants["aMatrix"] = np.zeros((len(self.particleSet),len(self.particleSet)),dtype = float)
-		self.systemConstants["pVector"] = np.zeros((len(self.particleSet),1),dtype = float)
-		self.systemConstants["bVector"] = np.zeros((len(self.particleSet),1),dtype = float)
+		# print("Initializing Matrix")
+		# self.systemConstants["aMatrix"] = np.zeros((len(self.particleSet),len(self.particleSet)),dtype = float)
+		# self.systemConstants["pVector"] = np.zeros((len(self.particleSet),1),dtype = float)
+		# self.systemConstants["bVector"] = np.zeros((len(self.particleSet),1),dtype = float)
 
 
 		print("Initializing boundary particle data")
@@ -145,7 +145,7 @@ class ParticleSystem:
 		pmax = -1
 		pmin = 9E20
 
-		cmap = cm.get_cmap('gray')
+		cmap = cm.get_cmap('rainbow')
 
 		for particle in self.particleSet:
 			if particle.particleVariables["isBoundary"] is False :
@@ -342,8 +342,8 @@ class ParticleSystem:
 
 		# self.scat = self.ax.scatter(xdat,ydat,color='Black',
 		# 				s=300*self.systemConstants["interactionlen"]**2,edgecolor= (1,1,1,0.5))
-		# animation = FuncAnimation(self.fig,self.update,frames = 1,interval=999999,repeat=False)
-		animation = FuncAnimation(self.fig,self.update)
+		animation = FuncAnimation(self.fig,self.update,frames = 1,interval=999999,repeat=False)
+		# animation = FuncAnimation(self.fig,self.update)
 		plt.show()
 
 	def constructContacts(self):

@@ -74,7 +74,7 @@ class ParticleInitData:
 	def __init__ (self,
 		          systemConstants,
 		          particleVariables):
-	
+
 		self.systemConstants = systemConstants
 		self.particleVariables = particleVariables
 
@@ -92,6 +92,7 @@ class ParticleInitData:
 		# (self.posDat,pmass) = generateBlockStaggered(Vec2(padding+0.*d,padding+d),Vec2(d+maxx/2,maxy/1.5),d)
 		# dam
 		(self.posDat,pmass) = generateBlockSquare(Vec2(padding+0.*d,padding+d),Vec2(d+maxx/2,maxy/1.5),d)
+		# (self.posDat,pmass) = generateBlockSquare(Vec2(padding+0.*d,padding+d),Vec2(d+maxx/8,maxy/3),d)
 
 		self.velDat = []
 		self.a_external = []
@@ -142,11 +143,11 @@ def generateWall(startCoord,endCoord,d,layers):
 	
 	offset = 0.5 * sdir * stencil.length() + s * snormaldir * stencil.length()
 
-	for i in range(0,num):
-		pos.append(startCoord + stencil * i)
+	# for i in range(0,num):
+	# 	pos.append(startCoord + stencil * i)
 
-	for i in range(0,num - 1):
-		pos.append(startCoord +  offset + stencil * i)
+	# for i in range(0,num - 1):
+	# 	pos.append(startCoord +  offset + stencil * i)
 
 	return pos
 
