@@ -21,7 +21,10 @@ class IISPH_Algorithm :
 		self.gW = gW
 		self.lW = lW
 		self.currentTime = 0
-		self.pixelSmoothing = 0.25
+
+		self.pixelSmoothingRasterization = 4
+		self.pixelSmoothingSampling = 2
+
 		self._proceduresInOrder =  [
 									   self.initializeGrid,
 									   self.rasterizeGrid,
@@ -40,7 +43,7 @@ class IISPH_Algorithm :
 		 						   ]
 
 	def initializeGrid(self,systemConstants, pairsData, particleSet):
-		systemConstants["grid"] = Grid(particleSet, self.pixelSmoothing * systemConstants["interactionlen"])
+		systemConstants["grid"] = Grid(particleSet, (1./self.pixelSmoothingRasterization) * systemConstants["interactionlen"], self.pixelSmoothingRasterization)
 
 
 	def rasterizeGrid(self,systemConstants, pairsData, particleSet):
@@ -60,14 +63,13 @@ class IISPH_Algorithm :
 		for particle in particleSet:
 			hashVal = systemConstants["grid"].hashFunction(particle.pos)
 
-			for i in range(-1,3):
-				for j in range(-1,3):
-
+			for i in range(1 - self.pixelSmoothingRasterization, 1 + self.pixelSmoothingRasterization):
+				for j in range(1 - self.pixelSmoothingRasterization, 1 + self.pixelSmoothingRasterization):
 					nodes = systemConstants["grid"].nodes
 					node = nodes.get((hashVal[0]+i,hashVal[1]+j))
 					if node is None :
 						continue
-					node.quantities["color"]     += node.W(particle.pos)
+					node.quantities["color"]     += node.W(particle.pos, self.pixelSmoothingRasterization)
 
 
 
@@ -92,41 +94,27 @@ class IISPH_Algorithm :
 			self.traverseParticle(neighbor)
 
 	def detectBoundaries(self, systemConstants, pairsData, particleSet):
-		k1 = 0.35
+		k1 = 0.4
 		k2 = 0.7
 		for key in systemConstants["grid"].nodes:
 			node = systemConstants["grid"].nodes[key]
-			node.quantities["colorGrad"] = systemConstants["grid"].sampleScalarGradientFromGrid(node.nodePos,"color")
+			node.quantities["colorGrad"] = systemConstants["grid"].sampleScalarGradientFromGrid(node.nodePos,"color", self.pixelSmoothingSampling)
 			node.quantities["colorGradIntensity"] = node.quantities["colorGrad"].length()
 
 		for key in systemConstants["grid"].nodes:
 			node = systemConstants["grid"].nodes[key]
 			gradDir = node.quantities["colorGrad"]
 
-			evalPoint1 = node.nodePos + gradDir * self.pixelSmoothing * systemConstants["interactionlen"]
-			r = systemConstants["grid"].sampleScalarFromGrid(evalPoint1,"colorGradIntensity")
+			evalPoint1 = node.nodePos + gradDir * (1./self.pixelSmoothingRasterization) * systemConstants["interactionlen"]
+			r = systemConstants["grid"].sampleScalarFromGrid(evalPoint1,"colorGradIntensity", self.pixelSmoothingSampling)
 
-			evalPoint2 = node.nodePos - gradDir * self.pixelSmoothing * systemConstants["interactionlen"]
-			p = systemConstants["grid"].sampleScalarFromGrid(evalPoint2,"colorGradIntensity") 
+			evalPoint2 = node.nodePos - gradDir * (1./self.pixelSmoothingRasterization) * systemConstants["interactionlen"]
+			p = systemConstants["grid"].sampleScalarFromGrid(evalPoint2,"colorGradIntensity", self.pixelSmoothingSampling) 
 
 			if node.quantities["colorGradIntensity"] < r or node.quantities["colorGradIntensity"] < p :
 				node.quantities["nonMaxSuppressedColorGradIntensity"] = 0.0
 			else:
 				node.quantities["nonMaxSuppressedColorGradIntensity"] = node.quantities["colorGradIntensity"]
-
-			# print(node.quantities["nonMaxSuppressedColorGradIntensity"])
-
-			# else:
-			# 	if node.quantities["colorGradIntensity"] > k1 :
-			# 		node.quantities["nonMaxSuppressedColorGradIntensity"] = node.quantities["colorGradIntensity"]
-			# 		if node.quantities["colorGradIntensity"] < k2 :
-			# 			node.quantities["edgeType"] = "weak"
-			# 			node.quantities["nonMaxSuppressedColorGradIntensity"] = 0.5
-			# 		else:
-			# 			node.quantities["edgeType"] = "strong"
-			# 			node.quantities["nonMaxSuppressedColorGradIntensity"] = 1.0
-			# 	else:
-			# 		node.quantities["nonMaxSuppressedColorGradIntensity"] = 0.0
 
 		for particle in particleSet:
 			particle.particleVariables["traversed"] = False
@@ -134,7 +122,7 @@ class IISPH_Algorithm :
 			particle.particleVariables["edgeType"] = None
 
 			hashVal = systemConstants["grid"].hashFunction(particle.pos)
-			particle.particleVariables["colorGrad"] = systemConstants["grid"].sampleScalarFromGrid(particle.pos,"nonMaxSuppressedColorGradIntensity")
+			particle.particleVariables["colorGrad"] = systemConstants["grid"].sampleScalarFromGrid(particle.pos,"nonMaxSuppressedColorGradIntensity", self.pixelSmoothingSampling)
 			# print(particle.particleVariables["colorGrad"])
 			if particle.particleVariables["colorGrad"] > k1 :
 				if particle.particleVariables["colorGrad"] < k2 :
@@ -551,9 +539,9 @@ class IISPH_Algorithm :
 		# for i in range(0,len(particleSet)):
 			# print(systemConstants["AMatrix"][i,i])
 
-		fig, ax = plt.subplots(figsize=(4, 4),nrows = 1,ncols = 1)		
-		ax.spy(systemConstants["AMatrix"], markersize = 1)
-		ax.figure.show()
+		# fig, ax = plt.subplots(figsize=(4, 4),nrows = 1,ncols = 1)		
+		# ax.spy(systemConstants["AMatrix"], markersize = 1)
+		# ax.figure.show()
 
 		# systemConstants["pVector"] = linalg.spsolve(systemConstants["AMatrix"], systemConstants["bVector"])
 		systemConstants["pVector"] = linalg.bicg(systemConstants["AMatrix"], systemConstants["bVector"])[0]

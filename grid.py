@@ -37,12 +37,12 @@ class Node:
 		self.h = h
 		self.quantities = dict()
 
-	def W(self,particlePos):
-		q = (particlePos - self.nodePos) / (self.h)
+	def W(self,particlePos, smoothing):
+		q = (particlePos - self.nodePos) / (self.h * (smoothing / 2.0))
 		return self.N( q.x ) * self.N( q.y )
 
-	def gW(self,particlePos):
-		q = (particlePos - self.nodePos) / (self.h)
+	def gW(self,particlePos, smoothing):
+		q = (particlePos - self.nodePos) / (self.h * (smoothing / 2.0))
 		return Vec2(self.Nx(q.x) * self.N (q.x),
 					self.N (q.y) * self.Nx(q.y)) / self.h
 
@@ -97,7 +97,7 @@ class Node:
 
 class Grid:
 
-	def __init__(self, particleSet, h):
+	def __init__(self, particleSet, h, smoothing):
 		# self.nx = int(domainExtent[0] / h) + 1
 		# self.ny = int(domainExtent[1] / h) + 1
 		# self.domainExtent = domainExtent
@@ -106,54 +106,54 @@ class Grid:
 
 		for p in particleSet:
 			(m, n) = self.hashFunction(p.pos)
-			for i in range(-1,3):
-				for j in range(-1,3):
+			for i in range(1-smoothing,1+smoothing):
+				for j in range(1-smoothing,1+smoothing):
 					nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 					if self.nodes.get(self.hashFunction(nodePos)) is None :
 						self.nodes[self.hashFunction(nodePos)] = Node(nodePos, h);
 						# print("adding node at {}".format(self.hashFunction(nodePos)))
 
-	def sampleScalarGradientFromGrid(self,pos,quantity):
+	def sampleScalarGradientFromGrid(self,pos,quantity,smoothing):
 		(m, n) = self.hashFunction(pos)
 		q = Vec2(0,0)
-		for i in range(-1, 3):
-			for j in range(-1, 3):
+		for i in range(1-smoothing,1+smoothing):
+			for j in range(1-smoothing,1+smoothing):
 				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 				node = self.nodes.get(self.hashFunction(nodePos))
 				if node is None :
 					continue
-				q += node.quantities[quantity] * node.gW(pos)
+				q += node.quantities[quantity] * node.gW(pos, smoothing)
 
 		return q
 
 
-	def sampleScalarFromGrid(self,pos,quantity):
+	def sampleScalarFromGrid(self,pos,quantity, smoothing):
 		(m, n) = self.hashFunction(pos)
 		q = 0
-		for i in range(-1, 3):
-			for j in range(-1, 3):
+		for i in range(1-smoothing,1+smoothing):
+			for j in range(1-smoothing,1+smoothing):
 				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
 				node = self.nodes.get(self.hashFunction(nodePos))
 				if node is None :
 					continue
-				q += node.quantities[quantity] * node.W(pos)
+				q += node.quantities[quantity] * node.W(pos, smoothing)
 
 		return q
 	
-	def sampleVecFromGrid(self,pos,quantity):
-		(m, n) = self.hashFunction(pos)
-		q = Vec2(0,0)
-		for i in range(-1, 3):
-			for j in range(-1, 3):
-				nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
-				node = self.nodes.get(self.hashFunction(nodePos))
-				if node is None :
-					continue
-				q += node.quantities[quantity] * node.W(pos)
+	# def sampleVecFromGrid(self,pos,quantity):
+	# 	(m, n) = self.hashFunction(pos)
+	# 	q = Vec2(0,0)
+	# 	for i in range(-1, 3):
+	# 		for j in range(-1, 3):
+	# 			nodePos = Vec2((m+i) * self.h, (n+j) * self.h)
+	# 			node = self.nodes.get(self.hashFunction(nodePos))
+	# 			if node is None :
+	# 				continue
+	# 			q += node.quantities[quantity] * node.W(pos)
 
-		return q
+	# 	return q
 
 	def hashFunction(self,pos):
-		return (int( (pos.x + 1E-10) / self.h),int( (pos.y + 1E-10) / self.h))
+		return (int( (pos.x + 1E-10) / self.h ),int( (pos.y + 1E-10) / self.h ))
 
 	

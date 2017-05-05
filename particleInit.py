@@ -143,11 +143,11 @@ def generateWall(startCoord,endCoord,d,layers):
 	
 	offset = 0.5 * sdir * stencil.length() + s * snormaldir * stencil.length()
 
-	# for i in range(0,num):
-	# 	pos.append(startCoord + stencil * i)
+	for i in range(0,num):
+		pos.append(startCoord + stencil * i)
 
-	# for i in range(0,num - 1):
-	# 	pos.append(startCoord +  offset + stencil * i)
+	for i in range(0,num - 1):
+		pos.append(startCoord +  offset + stencil * i)
 
 	return pos
 
